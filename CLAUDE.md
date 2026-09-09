@@ -54,6 +54,15 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
   n'est pas HTTP : pas d'endpoint dérive dans TerraOps) et transmet
   `inconclusive` tel quel.
 - `tests/fake_llm.py` : LLM scripté ; la boucle se teste sans réseau ni clé.
+- `ui/app.py` (Sprint 4) : chat Streamlit, client léger de l'Agent ; rend les
+  événements de `Agent.run(question, on_event=...)` (raison → outil → résultat /
+  passages cités → réponse). Port 8502 (8501 = UI carte de TerraOps).
+- `Dockerfile` + `docker/entrypoint.sh` + `docker-compose.yml` : `name: terraops`
+  + `include:` du compose TerraOps (`${TERRAOPS_REPO:-../TerraOps}`), dépôt
+  TerraOps monté RO dans `/terraops` pour `drift_report.py`, volumes `rag-store`
+  et `hf-cache`. Image ~3 Go (torch + Evidently) : dette assumée.
+- `scripts/record_demo.py` : GIF via Playwright sur la vraie UI. `tests/ui_fake_server.py`
+  = UI avec cerveau scripté, TEST ONLY (jamais pour une démo publiée).
 - `eval/` (Sprint 3) : `cases.py` (29 cas ; vérité terrain = FONCTION résolue à
   l'exécution contre l'API ; faits = groupes d'alternatives ; `required_tools` ⊂
   `allowed_tools`), `graders.py` (déterministe, atomique : tool_choice, facts,
@@ -68,7 +77,10 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
 - Stack TerraOps : `cd D:\TerraOps && docker compose up -d` (API prête ~40 s ;
   avant cela `/health` répond par une connexion fermée, pas par un refus).
 - Test d'acceptation Sprint 0 : `python scripts/audit_terraops.py` (7/7 attendu).
-- Tests : `python -m pytest` (34 tests, sans réseau ni modèle : faux embedder).
+- Tests : `python -m pytest` (36 tests, sans réseau ni modèle : faux embedder).
+- UI : `streamlit run ui/app.py --server.port 8502`. Démo complète :
+  `docker compose up` (depuis ce dossier ; TerraOps cloné à côté ou `TERRAOPS_REPO`).
+- GIF : `python scripts/record_demo.py` avec l'UI lancée sur un VRAI fournisseur.
 - Éval : `python evaluate.py --agent oracle` (harnais), `python evaluate.py --reps 2`
   (vrai agent, provider du `.env`), `--judge` pour le juge, `--only rag,refuse`.
   Rapports dans `eval_reports/<ts>_<label>/report.md` (gitignoré).
@@ -95,6 +107,10 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
   optionnel, harnais VALIDÉ (oracle 100/100/100/100/0/0 ; null 0 % faits, 100 %
   refus ; liar 100 % hallucination). Chiffres du VRAI agent : EN ATTENTE (clé /
   LM Studio). Le repo n'est pas encore sous git (à initialiser).
-- Prochain : mesurer le vrai agent sur les deux fournisseurs (`--reps 2`), lire
-  les échecs, puis les 3 outils restants (`/metrics` parsé, `/predict`, `/reload`
-  mutant + confirmation) et re-mesurer.
+- Sprint 4 (2026-09-09) : UI Streamlit avec raisonnement visible, packaging Docker
+  (compose `include`), README narratif + schéma Mermaid, script GIF. 36 tests.
+  Build Docker et `docker compose up` : voir ci-dessous. GIF réel : EN ATTENTE
+  (fournisseur). README : chiffres du vrai agent à insérer.
+- Reste : (1) clé Anthropic ou LM Studio → `evaluate.py --reps 2` ×2 fournisseurs,
+  chiffres dans le README, `record_demo.py` ; (2) `/reload` mutant + confirmation,
+  `/predict`, `/metrics` parsé ; (3) passer terraops + terraops-copilot en public.

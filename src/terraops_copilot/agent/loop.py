@@ -9,13 +9,19 @@ Guard rails owned by this loop (not by the model):
 - max_steps: an LLM that keeps calling tools would otherwise loop forever/spend money;
 - every ToolCall goes through ToolRegistry.execute (validation, confirmation);
 - the system prompt tells the model to refuse rather than guess when no tool fits.
+
+Observability: `run(question, on_event=...)` emits one event per model turn, tool
+call and tool result, so a UI can show the agent 'thinking' as it happens instead
+of only the final answer (Sprint 4).
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..llm.base import LLMClient
-from ..llm.types import (AssistantMessage, LLMReply, Message, ToolResultMessage,
+from ..llm.types import (AssistantMessage, LLMReply, Message, ToolCall, ToolResultMessage,
                          UserMessage)
 from ..tools.base import ToolRegistry
 
@@ -38,7 +44,12 @@ Rules:
    requires combining them.
 6. When a tool returns an error or an inconclusive result, report it as such
    ("not enough data" is not "no drift") instead of retrying endlessly.
-7. Keep answers short and factual; mention which tool the value came from."""
+7. Before each tool call, write ONE short sentence saying which tool you are about
+   to use and why (e.g. "Je consulte le registry, car la question porte sur l'état
+   actuel."). Keep final answers short and factual."""
+
+Event = tuple[str, Any]                 # ("thinking"|"tool_call"|"tool_result"|"answer", payload)
+OnEvent = Callable[[Event], None]
 
 
 @dataclass
@@ -66,26 +77,32 @@ class Agent:
         self.max_steps = max_steps
         self.system_prompt = system_prompt
 
-    def run(self, question: str) -> AgentResult:
+    def run(self, question: str, on_event: OnEvent | None = None) -> AgentResult:
+        emit = on_event or (lambda _e: None)
         messages: list[Message] = [UserMessage(question)]
         steps: list[Step] = []
         specs = self.registry.specs()
 
         for _ in range(self.max_steps):
+            emit(("thinking", None))
             reply = self.llm.chat(self.system_prompt, messages, specs)   # THINK
             messages.append(AssistantMessage(reply.text, reply.tool_calls))
             step = Step(reply)
             steps.append(step)
 
             if not reply.wants_tools:                                     # ANSWER
+                emit(("answer", reply.text or ""))
                 return AgentResult(answer=reply.text or "", steps=steps, messages=messages)
 
             for call in reply.tool_calls:                                 # ACT
+                emit(("tool_call", {"call": call, "reason": reply.text}))
                 result = self.registry.execute(call)                      # (validated)
                 step.results.append(result)
                 messages.append(result)                                   # OBSERVE
+                emit(("tool_result", result))
 
         # Budget exhausted: ask for a final answer WITHOUT tools rather than fail silently.
+        emit(("thinking", None))
         reply = self.llm.chat(
             self.system_prompt + "\nYou have used all your tool calls. Answer now with "
             "what you have, or say what is missing.", messages, tools=[])
@@ -94,4 +111,8 @@ class Agent:
                          usage=reply.usage)
         messages.append(AssistantMessage(final.text, []))
         steps.append(Step(final))
+        emit(("answer", final.text or ""))
         return AgentResult(answer=final.text or "", steps=steps, messages=messages)
+
+
+__all__ = ["Agent", "AgentResult", "Step", "SYSTEM_PROMPT", "ToolCall"]

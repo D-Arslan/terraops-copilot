@@ -1,0 +1,11 @@
+.git
+.env
+.rag_store
+eval_reports
+docs/*.gif
+**/__pycache__
+**/*.pyc
+.pytest_cache
+*.egg-info
+tests
+scripts

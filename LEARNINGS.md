@@ -420,3 +420,61 @@ ce qui a cassé, questions recruteur. Le code et les docs projet sont en anglais
 - [ ] Pourquoi « plusieurs chemins valides » change la façon d'écrire la vérité terrain.
 - [ ] Ce qu'un oracle et un menteur prouvent chacun sur le harnais.
 - [ ] Pourquoi le juge ne grade que la fidélité et le refus, et pas les faits.
+
+---
+
+## Sprint 4 — La démo et le packaging (2026-09-09)
+
+### Ce qu'une démo d'agent doit montrer (et pourquoi)
+
+- Un chatbot se démontre par sa réponse. Un agent se démontre par sa **route** :
+  quel outil, pourquoi, avec quels arguments, et ce qui est revenu. Si on ne voit
+  que la réponse, un agent et un chatbot qui hallucine sont indiscernables.
+- Donc la boucle émet des événements (`thinking`, `tool_call` avec la phrase de
+  justification, `tool_result`, `answer`) et l'UI ne fait que les rendre, dans
+  l'ordre, pendant que ça se passe. Rien n'est reconstruit après coup.
+- La phrase « pourquoi » vient du modèle lui-même (règle 7 du prompt : une phrase
+  avant chaque appel). C'est le seul endroit où on lui demande d'expliquer sa
+  route, et c'est précisément ce qui rend la démo lisible sans commentaire.
+- Le refus est une route visible aussi : « Aucun outil appelé » + la phrase du
+  modèle. Une démo qui ne montre que les succès ne prouve rien.
+
+### Packaging : ce qui a été décidé
+
+- `docker-compose.yml` **inclut** le compose de TerraOps (`include:`) au lieu de le
+  recopier : la stack reste la sienne, inchangée. Le copilote la rejoint sous le
+  même nom de projet (`name: terraops`), sinon deux stacks aux mêmes
+  `container_name` se battraient.
+- Le dépôt TerraOps est monté **en lecture seule** dans le conteneur, uniquement
+  pour `drift_report.py`. Conséquence assumée : l'image embarque torch, torchvision
+  et Evidently (~3 Go). Le vrai correctif serait un endpoint de dérive côté
+  TerraOps ; c'est noté comme dette, pas fait ici (règle : on ne touche pas TerraOps).
+- Index RAG et modèle d'embedding dans des volumes : construits au premier boot,
+  conservés ensuite. L'entrypoint attend l'API (le port s'ouvre ~40 s avant
+  uvicorn — le piège du Sprint 0, résolu au bon endroit).
+- LM Studio tourne sur l'hôte : `host.docker.internal` + `extra_hosts`.
+
+### Le GIF
+
+- `scripts/record_demo.py` pilote la VRAIE UI avec Playwright : il tape les
+  questions, attend « Réponse prête », capture des images, assemble le GIF. Rien
+  n'est mis en scène.
+- Vérifié mécaniquement contre l'UI avec un cerveau scripté (`tests/ui_fake_server.py`,
+  outil de test, pas produit). Le GIF publié doit venir d'un vrai fournisseur — pas
+  généré pendant la session (ni clé ni LM Studio).
+
+### Test d'acceptation
+
+- `python -m pytest` : 36 tests, dont l'ordre des événements et le rendu de l'UI
+  (Streamlit AppTest, sans fournisseur).
+- `docker compose config` : 8 services, le copilote rejoint le projet `terraops`.
+- Build de l'image et `docker compose up` de bout en bout : voir CLAUDE.md « État ».
+
+### Questions recruteur (Sprint 4)
+
+1. Que doit montrer une démo d'agent qu'une démo de chatbot ne montre pas ?
+2. D'où vient la phrase « pourquoi j'appelle cet outil » ? Est-elle fiable ?
+3. Pourquoi inclure le compose de TerraOps plutôt que le recopier ?
+4. Pourquoi votre image fait 3 Go, et que faudrait-il pour la réduire ?
+5. Comment votre entrypoint gère-t-il le démarrage lent de l'API ?
+6. Le GIF est-il une preuve ? Qu'est-ce qui le rend honnête ou non ?

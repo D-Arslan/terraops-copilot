@@ -1,0 +1,18 @@
+# Runtime deps of the agent + UI image. torch/torchvision are installed separately
+# from the CPU wheel index (see Dockerfile).
+requests==2.32.4
+pydantic==2.13.4
+python-dotenv==1.1.1
+anthropic==1.4.0
+openai==3.10.0
+sentence-transformers==6.0.1
+chromadb==1.5.9
+rank-bm25==0.2.2
+streamlit==1.60.0
+# --- needed to run TerraOps' drift_report.py (mounted at /terraops) ---
+pandas==2.3.3
+evidently==0.7.21
+psycopg2-binary==2.9.11
+pyyaml==6.0.3
+pillow==12.1.1
+numpy==2.4.3

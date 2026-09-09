@@ -1,0 +1,50 @@
+# One command for the whole demo:  docker compose up
+#
+# `include` pulls in the TerraOps stack unchanged (MinIO, Postgres, MLflow, API,
+# Prometheus, Streamlit map) from the sibling checkout, then adds the copilot on top.
+# TerraOps is never modified: it is included, and its repo is mounted READ-ONLY so the
+# drift tool can run its drift_report.py against the shared Postgres.
+# Same project NAME as the TerraOps checkout: the included services are then the very
+# same containers `docker compose up` in ../TerraOps manages (no name clash, no duplicate
+# stack), and the copilot simply joins that project.
+name: terraops
+
+include:
+  - path: ${TERRAOPS_REPO:-../TerraOps}/docker-compose.yml
+
+services:
+  copilot:
+    build: .
+    container_name: terraops-copilot
+    ports:
+      - "8502:8502"                      # http://localhost:8502
+    environment:
+      TERRAOPS_API_URL: http://api:8000
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      TERRAOPS_DB_URI: postgresql://mlflow:mlflow@postgres:5432/mlflow
+      TERRAOPS_REPO: /terraops
+      RAG_STORE_PATH: /data/rag_store
+      # LLM: values come from ./.env (compose reads it for interpolation)
+      LLM_PROVIDER: ${LLM_PROVIDER:-anthropic}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5}
+      # LM Studio runs on the HOST: reach it through host.docker.internal
+      OPENAI_COMPAT_BASE_URL: ${OPENAI_COMPAT_BASE_URL_DOCKER:-http://host.docker.internal:1234/v1}
+      OPENAI_COMPAT_API_KEY: ${OPENAI_COMPAT_API_KEY:-lm-studio}
+      OPENAI_COMPAT_MODEL: ${OPENAI_COMPAT_MODEL:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${TERRAOPS_REPO:-../TerraOps}:/terraops:ro
+      - rag-store:/data/rag_store          # built once, kept across restarts
+      - hf-cache:/cache/hf                 # embedding model download, kept
+    depends_on:
+      api:
+        condition: service_started
+      mlflow:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  rag-store:
+  hf-cache:
