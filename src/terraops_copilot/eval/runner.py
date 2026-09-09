@@ -78,6 +78,19 @@ def _expect_dict(e: Expect) -> dict:
     return d
 
 
+def _git_commit() -> str:
+    """Code version the numbers belong to; grader changes make older reports incomparable."""
+    import subprocess
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=PROJECT_ROOT,
+                             capture_output=True, text=True, timeout=5)
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=PROJECT_ROOT,
+                               capture_output=True, text=True, timeout=5).stdout.strip()
+        return (out.stdout.strip() or "n/a") + ("-dirty" if dirty else "")
+    except Exception:
+        return "n/a"
+
+
 def dataset_hash(cases: list[Case]) -> str:
     h = hashlib.sha256("\n".join(f"{c.id}|{c.category}|{c.question}" for c in cases).encode("utf-8"))
     return h.hexdigest()[:12]
@@ -203,6 +216,7 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
         "argv": sys.argv,
         "ground_truth": truths,
         "system_prompt_sha": hashlib.sha256(agent.system_prompt.encode()).hexdigest()[:12],
+        "git_commit": _git_commit(),
         "tools_offered": [s.name for s in agent.registry.specs()],
     }
     summary = summarise(rows, errors, cases, meta)
@@ -222,7 +236,7 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
 def render_report(s: Summary, rows: list[Row]) -> str:
     m, meta = s.metrics, s.meta
     L = [f"# TerraOps Copilot — evaluation report ({meta['label']})", "",
-         f"- generated: {meta['generated_at']}",
+         f"- generated: {meta["generated_at"]} · code: `{meta.get("git_commit", "n/a")}`",
          f"- agent: `{meta['agent_llm']}` · judge: `{meta['judge_llm']}`",
          f"- dataset: {s.n_cases} cases (hash `{meta['dataset_hash']}`) · {meta['categories']} · reps={meta['reps']}",
          f"- rows scored: {s.n_rows} · errors (not scored): {s.n_errors}",
