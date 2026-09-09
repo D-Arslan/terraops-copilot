@@ -1,0 +1,91 @@
+"""Graders must reward a correct answer in any reasonable format, and fail a
+plausible-but-wrong one. Each test is one property (atomic checks)."""
+from terraops_copilot.agent.loop import AgentResult, Step
+from terraops_copilot.eval.cases import Expect, _num_alts
+from terraops_copilot.eval.graders import (grade, grade_citation, grade_tool_choice, refused,
+                                           unsupported_numbers)
+from terraops_copilot.llm.types import LLMReply, ToolCall, ToolResultMessage
+
+
+def result(answer: str, calls: list[tuple[str, str, bool]] = ()) -> AgentResult:
+    steps = []
+    for name, content, is_error in calls:
+        reply = LLMReply(text=None, tool_calls=[ToolCall("c", name, {})], stop_reason="tool_use")
+        steps.append(Step(reply, [ToolResultMessage("c", name, content, is_error)]))
+    steps.append(Step(LLMReply(text=answer, tool_calls=[], stop_reason="end_turn")))
+    return AgentResult(answer=answer, steps=steps, messages=[])
+
+
+def test_num_alts_accepts_percent_and_comma_forms():
+    alts = _num_alts("0.9810")
+    assert "0.981" in alts and "98,1" in alts and "98.1" in alts
+
+
+def test_tool_choice_requires_required_and_forbids_others():
+    exp = Expect(required_tools={"a"}, allowed_tools={"a", "b"})
+    assert grade_tool_choice(["a"], exp) and grade_tool_choice(["b", "a"], exp)
+    assert not grade_tool_choice(["b"], exp) and not grade_tool_choice(["a", "z"], exp)
+
+
+def test_facts_are_accent_and_case_insensitive():
+    exp = Expect(facts=[["dérive"], ["Version 1", "v1"]])
+    g = grade("q", result("La DERIVE est là. Le champion est la v1."), exp)
+    assert g.facts and not g.missing_facts
+
+
+def test_missing_fact_is_reported():
+    g = grade("q", result("Le champion est la v2."), Expect(facts=[["v1"]]))
+    assert g.facts is False and g.missing_facts == [["v1"]]
+
+
+def test_citation_must_match_a_returned_passage():
+    tool_out = '{"passages": [{"citation": "learning.md § Sprint 4 › Concept n°1 — Data drift", "text": "x"}]}'
+    ok = result("La dérive... [learning.md § Concept n°1 — Data drift]", [("search_documentation", tool_out, False)])
+    fake = result("La dérive... [README.md § Architecture]", [("search_documentation", tool_out, False)])
+    assert grade_citation(ok.answer, ok) and not grade_citation(fake.answer, fake)
+    g = grade("q", fake, Expect(facts=[["dérive"]], cite=True))
+    assert g.citation is False and g.hallucination      # invented citation = hallucination
+
+
+def test_unsupported_numbers_flags_invented_values_only():
+    r = result("Version 1, 10 classes, accuracy 98.1 %, 1234 requêtes.",
+               [("get_registry_champion", '{"version": "1", "tags": {"gate_accuracy": "0.9810"}}', False)])
+    exp = Expect(facts=[["10 classes"]])
+    assert unsupported_numbers(r.answer, "q", r, exp) == ["1234"]
+
+
+def test_refusal_detected_and_liar_flagged():
+    exp = Expect(refuse=True)
+    good = grade("q", result("Je ne peux pas répondre : aucun outil ne donne la latence."), exp)
+    bad = grade("q", result("La latence p95 est de 240 ms."), exp)
+    assert good.refusal and not good.hallucination
+    assert bad.refusal is False and bad.hallucination
+
+
+def test_forbidden_phrase_beats_matching_facts():
+    exp = Expect(facts=[["6"], ["200"]], forbidden=["pas de dérive"])
+    g = grade("q", result("6 lignes sur 200 : donc pas de dérive."), exp)
+    assert g.facts and g.forbidden_hit == ["pas de dérive"] and g.hallucination
+
+
+def test_over_refusal_on_answerable_case():
+    g = grade("q", result("Je ne sais pas."), Expect(facts=[["v1"]]))
+    assert g.over_refusal and g.facts is False
+
+
+def test_refused_markers_fr_en():
+    assert refused("Désolé, je n'ai pas accès à cette donnée.") and refused("I cannot answer that.")
+    assert not refused("Le champion est la version 1.")
+
+
+def test_numeric_fact_needs_word_boundaries():
+    exp = Expect(facts=[["version 1", "v1", " 1"]])
+    assert grade("q", result("il y a 1234 lignes"), exp).facts is False
+    assert grade("q", result("c'est la version 1."), exp).facts is True
+    assert grade("q", result("accuracy 0.981"), Expect(facts=[["0.98"]])).facts is False
+
+
+def test_text_fact_needs_start_of_word():
+    assert grade("q", result("le modèle a été rechargé"), Expect(facts=[["chargé"]])).facts is False
+    assert grade("q", result("le modèle est chargé"), Expect(facts=[["chargé"]])).facts is True
+    assert grade("q", result("plusieurs dérives"), Expect(facts=[["dérive"]])).facts is True

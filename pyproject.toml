@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "terraops-copilot"
+version = "0.1.0"
+description = "LLM agent (RAG + tool use) operating the TerraOps MLOps platform over HTTP"
+requires-python = ">=3.12"
+dependencies = [
+    "requests==2.32.4",
+    "pydantic==2.13.4",
+    "python-dotenv==1.1.1",
+    "anthropic==1.4.0",
+    "openai==3.10.0",
+    "sentence-transformers==6.0.1",
+    "chromadb==1.5.9",
+    "rank-bm25==0.2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2"]
+
+[project.scripts]
+terraops-copilot = "terraops_copilot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
