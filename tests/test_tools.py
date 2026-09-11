@@ -64,3 +64,16 @@ def test_spec_is_json_schema_without_title():
     spec = Tool("echo", "echo n", EchoArgs, lambda a: {}).spec()
     assert spec.parameters["type"] == "object"
     assert "n" in spec.parameters["properties"] and "title" not in spec.parameters
+
+
+def test_salvage_text_tool_calls_from_lmstudio_markup():
+    from terraops_copilot.llm.openai_compat_client import salvage_text_tool_calls
+    text = ('Je consulte la documentation, car la question porte sur un concept.  '
+            '[search_documentation] {"query": "seuils du gate", "k": 4} [END_TOOL_REQUEST]')
+    remaining, calls = salvage_text_tool_calls(text)
+    assert remaining == "Je consulte la documentation, car la question porte sur un concept."
+    assert [(c.name, c.arguments) for c in calls] == [("search_documentation", {"query": "seuils du gate", "k": 4})]
+    remaining, calls = salvage_text_tool_calls('[TOOL_REQUEST] {"name": "get_registry_champion", "arguments": {}} [END_TOOL_REQUEST]')
+    assert remaining is None and calls[0].name == "get_registry_champion" and calls[0].arguments == {}
+    remaining, calls = salvage_text_tool_calls("[bad] {not json} [END_TOOL_REQUEST]")
+    assert calls == [] and "[bad]" in remaining

@@ -77,13 +77,19 @@ def _num_alts(x: float | str) -> list[str]:
     return sorted({a for s in alts for a in (s, s.replace(".", ","))})
 
 
+def _version_alts(v: str) -> list[str]:
+    """'version 1', 'v1', 'la 1', 'numéro 1' - never the bare number ('n°1' in a citation
+    or '1234' must not count as the served version)."""
+    return [f"version {v}", f"v{v}", f"la {v}", f"numéro {v}", f"version: {v}", f"version {v} "]
+
+
 # --- live ---------------------------------------------------------------------
 
 def served_version(c: TerraOpsClient) -> Expect:
     v = c.model_info()["model_version"]
     return Expect(required_tools={"get_served_model"},
                   allowed_tools={"get_served_model", "get_api_health"},
-                  facts=[[f"version {v}", f"v{v}", f" {v}"]])
+                  facts=[_version_alts(v)])
 
 
 def api_up(c: TerraOpsClient) -> Expect:
@@ -98,7 +104,7 @@ def champion_version(c: TerraOpsClient) -> Expect:
     v = c.registry_model_by_alias(REGISTRY_MODEL, "champion")["version"]
     return Expect(required_tools={"get_registry_champion"},
                   allowed_tools={"get_registry_champion", "get_served_model"},
-                  facts=[[f"version {v}", f"v{v}", f" {v}"]])
+                  facts=[_version_alts(v)])
 
 
 def champion_gate_accuracy(c: TerraOpsClient) -> Expect:
@@ -163,7 +169,7 @@ def served_is_champion(c: TerraOpsClient) -> Expect:
     same = s == r
     return Expect(required_tools={"get_served_model", "get_registry_champion"},
                   allowed_tools={"get_served_model", "get_registry_champion"},
-                  facts=[[f" {s}"], ["oui", "yes", "bien", "identique", "même", "same"] if same
+                  facts=[_version_alts(s), ["oui", "yes", "bien", "identique", "même", "same"] if same
                          else ["non", "no", "diff", "pas"]])
 
 
@@ -171,7 +177,7 @@ def false_premise_v3(c: TerraOpsClient) -> Expect:
     r = c.registry_model_by_alias(REGISTRY_MODEL, "champion")["version"]
     return Expect(required_tools={"get_registry_champion"},
                   allowed_tools={"get_registry_champion", "get_served_model", "search_documentation"},
-                  facts=[[f"version {r}", f"v{r}", f" {r}"]],
+                  facts=[_version_alts(r)],
                   forbidden=["est bien la version 3", "est la version 3", "champion est la v3"])
 
 

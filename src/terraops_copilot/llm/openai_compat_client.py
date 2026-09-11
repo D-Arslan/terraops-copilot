@@ -12,12 +12,42 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from openai import OpenAI
 
 from .base import LLMClient
 from .types import (AssistantMessage, LLMReply, Message, ToolCall, ToolResultMessage,
                     ToolSpec, UserMessage)
+
+
+TEXT_TOOL_CALL = re.compile(
+    r"\[(?P<tag>TOOL_REQUEST|[A-Za-z_]\w*)\]\s*(?P<json>\{.*?\})\s*\[END_TOOL_REQUEST\]", re.S)
+
+
+def salvage_text_tool_calls(text: str) -> tuple[str | None, list[ToolCall]]:
+    """Turn '[tool_name] {json} [END_TOOL_REQUEST]' (or '[TOOL_REQUEST] {"name":..,
+    "arguments":..} [END_TOOL_REQUEST]') written in the assistant text into ToolCalls.
+    Returns the remaining text (the model's 'why' sentence) and the calls. Malformed
+    JSON is left in the text untouched: the loop will then end the turn normally."""
+    calls: list[ToolCall] = []
+
+    def _sub(m: re.Match) -> str:
+        try:
+            payload = json.loads(m.group("json"))
+        except json.JSONDecodeError:
+            return m.group(0)
+        if m.group("tag") == "TOOL_REQUEST":
+            name, args = payload.get("name"), payload.get("arguments", {})
+        else:
+            name, args = m.group("tag"), payload
+        if not name or not isinstance(args, dict):
+            return m.group(0)
+        calls.append(ToolCall(id=f"salvaged-{len(calls)}", name=name, arguments=args))
+        return ""
+
+    remaining = TEXT_TOOL_CALL.sub(_sub, text).strip()
+    return (remaining or None), calls
 
 
 class OpenAICompatClient(LLMClient):
@@ -78,6 +108,7 @@ class OpenAICompatClient(LLMClient):
             **kwargs,
         )
         choice = response.choices[0]
+        text = choice.message.content or None
         calls = []
         for tc in choice.message.tool_calls or []:
             try:
@@ -87,9 +118,15 @@ class OpenAICompatClient(LLMClient):
                 # marker so the registry rejects it and the model gets to retry.
                 args = {"__invalid_json__": tc.function.arguments}
             calls.append(ToolCall(id=tc.id, name=tc.function.name, arguments=args))
+        if not calls and text:
+            # Measured on Qwen2.5-7B via LM Studio: when the model writes a sentence
+            # BEFORE the call, the server fails to parse its tool-request markup and
+            # returns it as plain text. The decision was right; only the transport lost
+            # it. Salvage it here - this is exactly what an adapter is for.
+            text, calls = salvage_text_tool_calls(text)
         usage = response.usage
         return LLMReply(
-            text=choice.message.content or None,
+            text=text,
             tool_calls=calls,
             stop_reason=choice.finish_reason or "",
             usage={"input_tokens": getattr(usage, "prompt_tokens", 0) or 0,
