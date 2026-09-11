@@ -27,12 +27,15 @@ REFUSAL_MARKERS = [
     "cannot", "can't", "unable", "not able", "no tool", "don't have", "not available", "out of scope",
     "ne peux pas prédire", "impossible à prédire", "ne peux pas prévoir", "il faudrait",
     "pas capable", "pas en mesure", "n'ont pas pu", "ne fournit pas", "ne fournissent pas",
+    "impossible à", "rien ne le prédit", "ne le prédit", "dépendra", "personne ne peut",
 ]
 
 CITATION = re.compile(r"\[([^\[\]]+?)\s*§\s*([^\[\]]+?)\]")
 # Units may follow a number ("31,91ms", "98,1%"): only digits/dots are excluded around it,
 # otherwise "31,91ms" was captured as the unsupported number "31" (seen in run 4).
-NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?!\d)")   # "224," counts; "p95" does not
+# "224," counts; "p95" does not; "12:04:32" is a time, not three numbers (seen on Claude:
+# the seconds "32" of a timestamp were flagged as unsupported).
+NUMBER = re.compile(r"(?<![\w.:])\d+(?:[.,]\d+)?(?![\d:])")
 
 
 def norm(s: str) -> str:
@@ -119,8 +122,8 @@ def numbers_in(text: str) -> set[str]:
 
 def unsupported_numbers(answer: str, question: str, result: AgentResult, exp: Expect) -> list[str]:
     """Numbers in the answer that appear nowhere in: question, tool results, expected
-    facts. Cheap hallucination detector for factual answers. Small integers (<=12,
-    e.g. '2 outils', '7 jours') are ignored to avoid flagging ordinary prose."""
+    facts. Cheap hallucination detector for factual answers. Small integers (<=31,
+    e.g. '2 outils', '7 jours', '24 h') are ignored to avoid flagging ordinary prose."""
     support = numbers_in(question)
     for step in result.steps:
         for r in step.results:
@@ -136,7 +139,7 @@ def unsupported_numbers(answer: str, question: str, result: AgentResult, exp: Ex
             continue
         if n in support or any(abs(v - float(s)) < 1e-9 for s in support if _isnum(s)):
             continue
-        if v.is_integer() and v <= 12:
+        if v.is_integer() and v <= 31:   # hours/days/months ("24 h", "7 jours", "30 jours")
             continue
         # percentages written 98.1 while support has 0.981 (or the reverse)
         if any(_isnum(s) and (abs(v / 100 - float(s)) < 1e-6 or abs(v * 100 - float(s)) < 1e-6)

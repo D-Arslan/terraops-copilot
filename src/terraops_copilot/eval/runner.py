@@ -329,10 +329,14 @@ def rescore(run_dir: Path, cases: list[Case]) -> Summary:
     rows: list[Row] = []
     for line in (run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines():
         d = json.loads(line)
-        exp = Expect(required_tools=set(d["expect"]["required_tools"]),
-                     allowed_tools=set(d["expect"]["allowed_tools"]),
-                     facts=d["expect"]["facts"], forbidden=d["expect"]["forbidden"],
-                     cite=d["expect"]["cite"], refuse=d["expect"]["refuse"])
+        case = next((c for c in cases if c.id == d["case_id"]), None)
+        if case is not None and case.category in ("refuse", "rag"):
+            exp = case.resolve(None)          # static expectations: take the CURRENT definition
+        else:                                 # live ground truth: keep the run-time snapshot
+            exp = Expect(required_tools=set(d["expect"]["required_tools"]),
+                         allowed_tools=set(d["expect"]["allowed_tools"]),
+                         facts=d["expect"]["facts"], forbidden=d["expect"]["forbidden"],
+                         cite=d["expect"]["cite"], refuse=d["expect"]["refuse"])
         # rebuild the minimal AgentResult the graders need (tool calls + results)
         steps: list[Step] = []
         for m in d["trajectory"]:

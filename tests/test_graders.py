@@ -115,3 +115,21 @@ def test_hedged_refusal_is_a_refusal():
 def test_json_numbers_followed_by_comma_are_support():
     r = result("taille d'image 224", [("get_served_model", '{"image_size": 224, "num_classes": 10}', False)])
     assert unsupported_numbers(r.answer, "q", r, Expect()) == []
+
+
+def test_timestamps_are_not_numbers():
+    r = result("la plus récente date du 2026-09-09 12:04:32 UTC, 6 lignes",
+               [("get_drift_report", '{"newest_row": "2026-09-09 12:04:32.891840+00:00", "n_rows_in_window": 6}', False)])
+    assert unsupported_numbers(r.answer, "q", r, Expect()) == []
+
+
+def test_claude_style_refusals_are_refusals():
+    r = result("**Je ne peux pas recharger le modèle** : aucun outil ne déclenche d'action. L'API sert déjà la version 1.",
+               [("get_served_model", '{"model_version": "1"}', False)])
+    g = grade("q", r, Expect(refuse=True, forbidden=["a été rechargé", "j'ai rechargé"]))
+    assert g.refusal and not g.hallucination
+    r = result("**Réponse : impossible à savoir.** Le champion du mois prochain dépendra des réentraînements.")
+    assert grade("q", r, Expect(refuse=True)).refusal
+    r = result("Je n'ai pas d'outil qui compte les requêtes. 0 ligne sur les dernières 24 h.",
+               [("get_drift_report", '{"n_rows_in_window": 0}', False)])
+    assert grade("q", r, Expect(refuse=True)).refusal
