@@ -183,26 +183,44 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
     rows: list[Row] = []
     errors: list[dict] = []
     truths: dict[str, dict] = {}
+    total = len(cases) * reps
+    t_start = time.perf_counter()
 
-    for case in cases:
-        try:
-            exp = case.resolve(client)                 # ground truth from the live system
-        except Exception as exc:
-            errors.append({"case_id": case.id, "phase": "ground_truth", "error": repr(exc)})
-            continue
-        truths[case.id] = _expect_dict(exp)
-        for rep in range(reps):
+    # Rows and errors are APPENDED as they happen: a run killed half-way (or a slow
+    # local model) still leaves scorable data, and progress is visible from the files.
+    results_f = (out_dir / "results.jsonl").open("w", encoding="utf-8")
+    errors_f = (out_dir / "errors.jsonl").open("w", encoding="utf-8")
+    try:
+        for case in cases:
             try:
-                row = run_case(agent, case, exp, rep, judge)
-                rows.append(row)
-                mark = "ok " if (row.grade["facts"] in (True, None) and row.grade["tool_choice"]
-                                 and not row.grade["hallucination"]) else "KO "
-                print(f"[{mark}] {case.id:<10} rep{rep} tools={row.tools_called} "
-                      f"facts={row.grade['facts']} halluc={row.grade['hallucination']}", flush=True)
+                exp = case.resolve(client)                 # ground truth from the live system
             except Exception as exc:
-                errors.append({"case_id": case.id, "rep": rep, "phase": "agent",
-                               "error": repr(exc), "trace": traceback.format_exc()[-1500:]})
-                print(f"[ERR] {case.id} rep{rep}: {exc!r}", flush=True)
+                err = {"case_id": case.id, "phase": "ground_truth", "error": repr(exc)}
+                errors.append(err)
+                errors_f.write(json.dumps(err, ensure_ascii=False) + "\n"); errors_f.flush()
+                continue
+            truths[case.id] = _expect_dict(exp)
+            for rep in range(reps):
+                try:
+                    row = run_case(agent, case, exp, rep, judge)
+                    rows.append(row)
+                    results_f.write(json.dumps(asdict(row), ensure_ascii=False) + "\n"); results_f.flush()
+                    mark = "ok " if (row.grade["facts"] in (True, None) and row.grade["tool_choice"]
+                                     and not row.grade["hallucination"]) else "KO "
+                    done = len(rows) + len(errors)
+                    eta = (time.perf_counter() - t_start) / done * (total - done)
+                    print(f"[{mark}] {case.id:<10} rep{rep} tools={row.tools_called} "
+                          f"facts={row.grade['facts']} halluc={row.grade['hallucination']} "
+                          f"({done}/{total}, {row.latency_s:.0f}s, ETA {eta/60:.0f} min)", flush=True)
+                except Exception as exc:
+                    err = {"case_id": case.id, "rep": rep, "phase": "agent",
+                           "error": repr(exc), "trace": traceback.format_exc()[-1500:]}
+                    errors.append(err)
+                    errors_f.write(json.dumps(err, ensure_ascii=False) + "\n"); errors_f.flush()
+                    print(f"[ERR] {case.id} rep{rep}: {exc!r}", flush=True)
+    finally:
+        results_f.close()
+        errors_f.close()
 
     meta = {
         "label": label,
@@ -221,12 +239,6 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
     }
     summary = summarise(rows, errors, cases, meta)
 
-    with (out_dir / "results.jsonl").open("w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
-    with (out_dir / "errors.jsonl").open("w", encoding="utf-8") as f:
-        for e in errors:
-            f.write(json.dumps(e, ensure_ascii=False) + "\n")
     (out_dir / "summary.json").write_text(json.dumps(asdict(summary), ensure_ascii=False, indent=2),
                                           encoding="utf-8")
     (out_dir / "report.md").write_text(render_report(summary, rows), encoding="utf-8")
