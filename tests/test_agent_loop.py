@@ -41,3 +41,22 @@ def test_max_steps_stops_a_runaway_model():
     assert len(result.tools_called) == 3
     # The closing call must offer NO tools, so the model cannot keep going.
     assert llm.calls[-1][2] == []
+
+
+def test_eval_runner_circuit_breaker_stops_on_dead_provider(tmp_path):
+    """A provider that fails every call must abort after N errors, not burn the whole set."""
+    from terraops_copilot.eval.cases import Case, Expect
+    from terraops_copilot.eval.runner import run
+    from terraops_copilot.llm.base import LLMClient
+
+    class DeadLLM(LLMClient):
+        name = model = "dead"
+
+        def chat(self, system, messages, tools):
+            raise RuntimeError("ErrorDeviceLost")
+
+    cases = [Case(f"c{i}", "live", f"q{i}", lambda c: Expect(facts=[["x"]])) for i in range(10)]
+    summary = run(Agent(DeadLLM(), registry()), cases, reps=1, judge=None, out_dir=tmp_path,
+                  client=None, label="dead", max_consecutive_errors=3)
+    assert summary.n_rows == 0 and summary.n_errors == 3
+    assert (tmp_path / "errors.jsonl").read_text().count("ErrorDeviceLost") == 3

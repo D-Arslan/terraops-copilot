@@ -178,13 +178,14 @@ def summarise(rows: list[Row], errors: list[dict], cases: list[Case], meta: dict
 
 
 def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir: Path,
-        client: TerraOpsClient, label: str) -> Summary:
+        client: TerraOpsClient, label: str, max_consecutive_errors: int = 5) -> Summary:
     out_dir.mkdir(parents=True, exist_ok=True)
     rows: list[Row] = []
     errors: list[dict] = []
     truths: dict[str, dict] = {}
     total = len(cases) * reps
     t_start = time.perf_counter()
+    consecutive_errors = 0
 
     # Rows and errors are APPENDED as they happen: a run killed half-way (or a slow
     # local model) still leaves scorable data, and progress is visible from the files.
@@ -212,12 +213,22 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
                     print(f"[{mark}] {case.id:<10} rep{rep} tools={row.tools_called} "
                           f"facts={row.grade['facts']} halluc={row.grade['hallucination']} "
                           f"({done}/{total}, {row.latency_s:.0f}s, ETA {eta/60:.0f} min)", flush=True)
+                    consecutive_errors = 0
                 except Exception as exc:
                     err = {"case_id": case.id, "rep": rep, "phase": "agent",
                            "error": repr(exc), "trace": traceback.format_exc()[-1500:]}
                     errors.append(err)
                     errors_f.write(json.dumps(err, ensure_ascii=False) + "\n"); errors_f.flush()
                     print(f"[ERR] {case.id} rep{rep}: {exc!r}", flush=True)
+                    consecutive_errors += 1
+                    if consecutive_errors >= max_consecutive_errors:
+                        # Circuit breaker: a dead provider (GPU driver lost, server down)
+                        # would otherwise produce N fast errors that look like a run.
+                        print(f"[ABORT] {consecutive_errors} consecutive errors - the provider "
+                              f"looks down; stopping. Rows so far are kept.", flush=True)
+                        break
+            if consecutive_errors >= max_consecutive_errors:
+                break
     finally:
         results_f.close()
         errors_f.close()
