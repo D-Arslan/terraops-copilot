@@ -111,11 +111,13 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
   (compose `include`), README narratif + schéma Mermaid, script GIF. 36 tests.
   Build Docker et `docker compose up` : voir ci-dessous. GIF réel : EN ATTENTE
   (fournisseur). README : chiffres du vrai agent à insérer.
-- 2026-09-11 : PREMIÈRE MESURE RÉELLE (Qwen2.5-coder-7B, LM Studio, prompt v1) :
-  live 95 % outil / 86 % faits / 0 halluc ; rag 14 % outil / 55 % halluc (citations
-  inventées = placeholder du prompt recopié) ; mixed 0/2 ; 8 erreurs GPU
-  (ErrorDeviceLost, Iris Xe RAM pleine) isolées. Corrigés : grader zéros finaux,
-  prompt v2 (règle 3 exemple concret, règle 7), `--rescore`, écriture incrémentale.
+- 2026-09-11 : QUATRE RUNS LOCAUX (voir LEARNINGS « Runs 2 à 4 »). Run 4 = Qwen2.5-3B,
+  29/29, 0 erreur, 12 min : outil 69 / faits 54 / citation 27 / refus 60 / halluc 17.
+  7B : instable (ErrorDeviceLost sur Iris Xe, RAM 16 Go) ; rattrapage des appels en
+  texte dans l'adaptateur (live 73 → 90 %) ; prompt v2 (citations inventées 91 → 27 %).
+  7 corrections de graders, `--rescore`, coupe-circuit, réponse vide → erreur.
+  Modèle local de référence sur cette machine : **qwen2.5-3b-instruct**
+  (`lms load qwen2.5-3b-instruct --context-length 8192 --gpu max`, échauffer avant).
   Le conteneur copilot embarque encore le prompt v1 → `docker compose build copilot`.
 - Reste : (1) LM Studio avec GPU offload réduit → `evaluate.py --reps 2` (prompt v2),
   puis Anthropic ; comparer ;

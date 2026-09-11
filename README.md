@@ -99,26 +99,32 @@ same loop and the same tools:
 The liar caught two graders that were too lenient (`1` matching inside `1234`, *chargé*
 matching inside *rechargé*) before any real number was produced.
 
-**Real agent, first measurement** — Qwen2.5-coder-7B (LM Studio, local, free), prompt v1,
-29 cases × 2 reps, deterministic graders, 50 rows scored (8 GPU-driver errors kept aside):
+**Real agent — four local runs, one afternoon** (LM Studio on a 16 GB laptop with an
+integrated GPU, 29 cases, 1 rep, deterministic graders, all re-scored with the current
+graders via `python evaluate.py --rescore <dir>`):
 
-| category | n | tool choice | facts | citation | refusal | over-refusal | hallucination |
-|---|---|---|---|---|---|---|---|
-| live | 22 | 95 | 86 | — | — | 0 | 0 |
-| rag | 22 | 14 | 27 | 9 | — | 14 | 55 |
-| mixed | 2 | 0 | 50 | — | — | 0 | 0 |
-| trap | 2 | 100 | 50 | — | — | 0 | 0 |
-| refuse | 2 | 100 | — | — | 100 | — | 0 |
-| **all** | **50** | **56** | **56** | **9** | **100** | **6** | **24** |
+| run | model | prompt | transport | rows | tool choice | facts | citation | refusal | halluc. |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Qwen2.5-coder-7B | v1 | raw | 50 (+8 GPU errors) | 56 | 56 | 9 | 100 (n=2) | 24 |
+| 2 | Qwen2.5-coder-7B | v2 | raw | 29 | 48 | 42 | 18 | 40 | 24 |
+| 3 | Qwen2.5-coder-7B | v2 | + salvage | 10 (+5 GPU errors) | 90 | 80 | — | — | 10 |
+| 4 | **Qwen2.5-3B** | v2 | + salvage | **29, 0 errors** | **69** | **54** | **27** | **60** | **17** |
 
-Reading: a 7B local model routes to the live tools and quotes them faithfully (zero
-hallucination on live facts, "not enough data" preserved), but **skips the documentation
-tool on conceptual questions** and invents citations instead — 20 of 22 rag answers copied
-the prompt's `[source § section]` placeholder verbatim. That finding fixed the prompt
-(v2: concrete example, no citation without the tool) and a grader bug (`0.9810` vs
-`0.981`), both re-scored from saved trajectories with `python evaluate.py --rescore <dir>`
-instead of re-running 74 minutes of inference. Next: prompt v2 on LM Studio, then the same
-set on Anthropic (`LLM_PROVIDER=anthropic`) for the provider comparison.
+What the runs found, in order: the 7B copied the prompt's `[source § section]`
+placeholder as a fake citation in 20 of 22 rag answers (prompt v2: a concrete example,
+no citation without the tool → 3 of 11); it then wrote tool calls as text after its
+"why" sentence and the OpenAI-compatible server dropped them (the adapter now salvages
+`[tool] {json} [END_TOOL_REQUEST]` → live routing 73 → 90 %); the integrated GPU died
+under sustained load (errors quarantined, circuit breaker added); the 3B is three times
+faster, finishes cleanly, and actually uses the documentation tool (55 % of rag questions
+vs 14-18 % for the 7B). Constant across runs: zero hallucination on live facts, but
+invented facts on *refuse* questions and a lost false-premise trap - refusing and
+contradicting are harder than calling a tool. About one KO row in three was a grader
+defect, not a model one; seven grader fixes came out of reading them.
+
+With 29 cases × 1 rep the noise floor is ~±18 points on a rate: only the large effects
+above are effects. Next: the same set on Anthropic (`LLM_PROVIDER=anthropic`) as the
+reference measurement, then more reps.
 
 ## Run the demo
 

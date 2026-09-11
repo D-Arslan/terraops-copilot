@@ -539,3 +539,69 @@ faits en live — voir « ce que le run a appris au harnais »)
   Anthropic : même jeu, même graders, et comparer les deux fournisseurs.
 - Le RAG évité par le petit modèle : piste = forcer un appel à la doc quand la
   question est conceptuelle (routage côté code) — à mesurer, pas à supposer.
+
+---
+
+## Runs 2 à 4 — la boucle d'amélioration mesurée (2026-09-11, après-midi)
+
+Tous re-notés avec les graders du commit courant (`--rescore`), 1 répétition.
+
+| run | modèle | prompt | transport | lignes | outil | faits | citation | refus | halluc. | durée |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Qwen2.5-coder-7B | v1 | brut | 50 (+8 err.) | 56 | 56 | 9 | 100 (n=2) | 24 | 74 min |
+| 2 | Qwen2.5-coder-7B | v2 | brut | 29 | 48 | 42 | 18 | 40 | 24 | 45 min |
+| 3 | Qwen2.5-coder-7B | v2 | + rattrapage | 10 (+5 err., GPU) | 90 | 80 | — | — | 10 | 12 min |
+| 4 | **Qwen2.5-3B** | v2 | + rattrapage | **29, 0 err.** | **69** | **54** | **27** | **60** | **17** | **12 min** |
+
+### Ce que chaque run a appris
+
+- **Run 2 (prompt v2)** : les citations inventées passent de 20/22 à 3/11 — l'exemple
+  concret dans le prompt marche. Mais le routage live chute (95 → 73 %) : en lisant
+  les trajectoires, 4 « aucun outil » sont des appels ÉCRITS EN TEXTE
+  (`[search_documentation] {...} [END_TOOL_REQUEST]`) que LM Studio n'a pas parsés,
+  parce que le modèle met une phrase avant l'appel — ma règle 7. Le modèle avait
+  décidé juste ; le transport a perdu la décision. Leçon : lire les trajectoires,
+  pas seulement les taux.
+- **Run 3 (+ rattrapage dans l'adaptateur)** : sur les 10 lignes avant le plantage
+  GPU, live 90 % outil / 80 % faits. L'erreur restante est une vraie erreur de
+  décision. Le coupe-circuit a arrêté le run à 5 erreurs consécutives, lignes gardées.
+- **Run 4 (3B)** : plus petit, 3× plus rapide (45 s/question), zéro erreur matériel,
+  et il **utilise la documentation** (55 % des questions RAG contre 14-18 % pour le
+  7B). Ses faits sont moins bons et il boucle parfois (3 recherches sur rag-04), mais
+  c'est le premier run complet et propre. Sur cette machine, c'est le modèle local
+  de référence.
+
+### Ce que les runs ont appris au harnais (7 corrections, toutes testées)
+
+zéros finaux (0.9810) · placeholder recopié → prompt v2 · `--rescore` · écriture
+incrémentale + ETA · coupe-circuit · gras Markdown (« version **1** ») · unités
+(« 31,91ms » n'est pas « 31 » ; « p95 » n'est pas un nombre ; « 224, » en JSON compte
+comme support) · refus nuancés (« pas capables ») · réponse vide → erreur, pas faux.
+Chacune a été trouvée en lisant des lignes marquées KO. Environ une sur trois était
+un défaut du grader, pas du modèle — exactement la proportion que la checklist
+d'éval annonce.
+
+### Ce qu'il reste vrai, quel que soit le run
+
+- Les modèles locaux ne mentent pas sur les données live (0 % d'hallucination en
+  live sur 3 runs sur 4) mais **inventent sur les refus** (« le champion du mois
+  prochain sera la v1 ») et **tombent dans le piège** de la fausse prémisse
+  (« le champion est la v3 car… »). Le refus et la contradiction sont plus durs
+  que l'appel d'outil.
+- Les questions à deux outils échouent sur tous les runs : aucun modèle local n'a
+  appelé les deux outils.
+- Marges : 29 cas × 1 rep ≈ ±18 points sur un taux. Les différences entre runs 2,
+  3 et 4 sur les catégories à 11 cas sont au niveau du bruit ; seules les grandes
+  (citations inventées 91 % → 27 %, RAG utilisé 14 % → 55 %) sont des effets.
+
+### Matériel : ce qu'il faut savoir pour refaire ça
+
+- Iris Xe = puce intégrée, mémoire partagée. Le 7B (4,7 Go) + Docker + Edge
+  saturent 16 Go → `ErrorDeviceLost` au bout de 10 à 50 questions, et le pilote
+  ne revient qu'en relançant LM Studio (`taskkill` + raccourci du menu Démarrer :
+  lancé depuis un shell d'arrière-plan, l'application ne reste pas ouverte).
+- Chaque « Reload » dans l'interface EMPILE une instance (3 copies = 14 Go) :
+  `lms unload --all` puis `lms load … --gpu max --context-length 8192`.
+- CPU seul : 300 s/question (prompt de 1 900 tokens sur 4 cœurs). Non viable.
+- Le premier appel après chargement paie tout le prompt ; les suivants réutilisent
+  le cache de préfixe : toujours échauffer avant de chronométrer.
