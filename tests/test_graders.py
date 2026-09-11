@@ -89,3 +89,10 @@ def test_text_fact_needs_start_of_word():
     assert grade("q", result("le modèle a été rechargé"), Expect(facts=[["chargé"]])).facts is False
     assert grade("q", result("le modèle est chargé"), Expect(facts=[["chargé"]])).facts is True
     assert grade("q", result("plusieurs dérives"), Expect(facts=[["dérive"]])).facts is True
+
+
+def test_numeric_fact_accepts_trailing_zeros_only():
+    assert grade("q", result("accuracy de 0.9810 au gate"), Expect(facts=[["0.981"]])).facts is True
+    assert grade("q", result("accuracy de 0.981"), Expect(facts=[["0.98"]])).facts is False
+    assert grade("q", result("il y a 1234 lignes"), Expect(facts=[["1"]])).facts is False
+    assert grade("q", result("soit 200 lignes"), Expect(facts=[["20"]])).facts is False

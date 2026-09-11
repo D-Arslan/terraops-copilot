@@ -21,7 +21,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..agent.loop import Agent, AgentResult
+from ..agent.loop import Agent, AgentResult, Step
 from ..client.terraops_api import TerraOpsClient
 from ..llm.types import AssistantMessage, ToolResultMessage, UserMessage
 from .cases import CASES, Case, Expect
@@ -297,3 +297,47 @@ def render_report(s: Summary, rows: list[Row]) -> str:
           "- Errors (API down, exceptions) are in errors.jsonl and never counted as wrong answers.",
           f"- Ground truth snapshot is in summary.json → meta.ground_truth."]
     return "\n".join(L) + "\n"
+
+
+# --- re-scoring -----------------------------------------------------------------
+
+def rescore(run_dir: Path, cases: list[Case]) -> Summary:
+    """Re-grade an existing run from its saved trajectories, WITHOUT calling any model.
+
+    Use after a grader fix: the model's answers are what they were, only the scoring
+    changes. Writes summary.rescored.json + report.rescored.md next to the originals,
+    and records which grader version (git commit) produced them.
+    """
+    from ..llm.types import LLMReply, ToolCall, ToolResultMessage
+    from .cases import Expect
+
+    rows: list[Row] = []
+    for line in (run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines():
+        d = json.loads(line)
+        exp = Expect(required_tools=set(d["expect"]["required_tools"]),
+                     allowed_tools=set(d["expect"]["allowed_tools"]),
+                     facts=d["expect"]["facts"], forbidden=d["expect"]["forbidden"],
+                     cite=d["expect"]["cite"], refuse=d["expect"]["refuse"])
+        # rebuild the minimal AgentResult the graders need (tool calls + results)
+        steps: list[Step] = []
+        for m in d["trajectory"]:
+            if m["role"] == "assistant":
+                calls = [ToolCall(id=f"r{i}", name=c["name"], arguments=c["arguments"])
+                         for i, c in enumerate(m["tool_calls"])]
+                steps.append(Step(LLMReply(text=m["text"], tool_calls=calls, stop_reason="")))
+            elif m["role"] == "tool" and steps:
+                steps[-1].results.append(ToolResultMessage(call_id="", name=m["name"],
+                                                           content=m["content"], is_error=m["is_error"]))
+        res = AgentResult(answer=d["answer"], steps=steps, messages=[])
+        g = grade(d["question"], res, exp)
+        d["grade"] = asdict(g)
+        rows.append(Row(**d))
+    errors = [json.loads(l) for l in (run_dir / "errors.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    old = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+    meta = {**old["meta"], "rescored_at": datetime.now(timezone.utc).isoformat(),
+            "rescored_with_git_commit": _git_commit(), "label": old["meta"]["label"] + " (rescored)"}
+    summary = summarise(rows, errors, cases, meta)
+    (run_dir / "summary.rescored.json").write_text(json.dumps(asdict(summary), ensure_ascii=False, indent=2),
+                                                   encoding="utf-8")
+    (run_dir / "report.rescored.md").write_text(render_report(summary, rows), encoding="utf-8")
+    return summary

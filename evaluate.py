@@ -28,7 +28,7 @@ from terraops_copilot.client.terraops_api import TerraOpsClient      # noqa: E40
 from terraops_copilot.eval.baselines import LiarLLM, NullLLM, OracleLLM  # noqa: E402
 from terraops_copilot.eval.cases import CASES                        # noqa: E402
 from terraops_copilot.eval.judge import make_judge                   # noqa: E402
-from terraops_copilot.eval.runner import run                         # noqa: E402
+from terraops_copilot.eval.runner import run                         # noqa: E402  (rescore imported lazily)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,6 +40,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--only", default=None, help="comma-separated categories or case ids")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--out", type=Path, default=Path("eval_reports"))
+    ap.add_argument("--rescore", type=Path, default=None,
+                    help="re-grade an existing run directory with the current graders (no model calls)")
     args = ap.parse_args(argv)
 
     cases = CASES
@@ -48,6 +50,18 @@ def main(argv: list[str] | None = None) -> int:
         cases = [c for c in cases if c.category in keys or c.id in keys]
     if args.limit:
         cases = cases[: args.limit]
+
+    if args.rescore:
+        from terraops_copilot.eval.runner import rescore
+        summary = rescore(args.rescore, cases)
+        m = summary.metrics
+        print(f"rescored {summary.n_rows} rows ({summary.n_errors} errors kept aside) with graders @ "
+              f"{summary.meta['rescored_with_git_commit']}")
+        print(f"tool choice {m['tool_choice_pct']} % | facts {m['factual_accuracy_pct']} % | "
+              f"citation {m['citation_pct']} % | refusal {m['correct_refusal_pct']} % | "
+              f"over-refusal {m['over_refusal_pct']} % | hallucination {m['hallucination_pct']} %")
+        print(f"report -> {args.rescore / 'report.rescored.md'}")
+        return 0
 
     agent = build_agent(with_rag=True)
     if args.agent != "real":

@@ -36,8 +36,11 @@ Rules:
    week?", "which version is served?") -> live tools. CONCEPTS and design ("what is
    drift?", "how does promotion work?") -> search_documentation. A question can need
    both ("is there drift, and what does that mean?").
-3. When you answer from documentation passages, cite each one as [source § section]
-   right after the claim it supports, and only claim what the passages say.
+3. When you answer from documentation passages, cite each passage right after the
+   claim it supports, copying its "citation" field verbatim between square brackets,
+   for example: [learning.md § Sprint 4 › Concept n°1 — Data drift vs concept drift].
+   Never write a citation for a passage you did not receive from search_documentation,
+   and never cite anything when you did not call that tool.
 4. If no available tool can answer, or the documentation has no relevant passage,
    say so clearly and name what would be needed. Do not guess, do not fabricate.
 5. Prefer one tool call when one is enough. Call several only when the question
@@ -46,7 +49,8 @@ Rules:
    ("not enough data" is not "no drift") instead of retrying endlessly.
 7. Before each tool call, write ONE short sentence saying which tool you are about
    to use and why (e.g. "Je consulte le registry, car la question porte sur l'état
-   actuel."). Keep final answers short and factual."""
+   actuel."), then make the call through the tool-calling mechanism - never write
+   the call as text. Keep final answers short and factual."""
 
 Event = tuple[str, Any]                 # ("thinking"|"tool_call"|"tool_result"|"answer", payload)
 OnEvent = Callable[[Event], None]

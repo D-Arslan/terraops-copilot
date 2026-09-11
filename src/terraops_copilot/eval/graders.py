@@ -46,7 +46,10 @@ def contains(haystack: str, needle: str) -> bool:
     word boundaries ('1' must not match inside '1234' or '0.1')."""
     h, n = norm(haystack), norm(needle).strip()
     if NUMERIC_ALT.match(n):
-        return re.search(rf"(?<![\d.,]){re.escape(n)}(?![\d.,])", h) is not None
+        # Trailing zeros are the same number: '0.981' must accept '0.9810' (found in
+        # the first real run), but '1' must still reject '1234' and '0.98' reject '0.981'.
+        tail = r"0*" if "." in n or "," in n else ""
+        return re.search(rf"(?<![\d.,]){re.escape(n)}{tail}(?![\d.,])", h) is not None
     # Start-of-word boundary for text: 'charge' must not match inside 'recharge'.
     # The end stays open so 'derive' still matches 'derives' / 'derivee'.
     return re.search(rf"(?<!\w){re.escape(n)}", h) is not None
