@@ -204,6 +204,10 @@ def run(agent: Agent, cases: list[Case], reps: int, judge: Judge | None, out_dir
             for rep in range(reps):
                 try:
                     row = run_case(agent, case, exp, rep, judge)
+                    if not row.answer.strip():
+                        # 'No answer' is not 'wrong answer': an empty completion goes to the
+                        # error sidecar (seen once on the 3B: 306 s, empty text).
+                        raise RuntimeError("empty answer from the model")
                     rows.append(row)
                     results_f.write(json.dumps(asdict(row), ensure_ascii=False) + "\n"); results_f.flush()
                     mark = "ok " if (row.grade["facts"] in (True, None) and row.grade["tool_choice"]

@@ -96,3 +96,22 @@ def test_numeric_fact_accepts_trailing_zeros_only():
     assert grade("q", result("accuracy de 0.981"), Expect(facts=[["0.98"]])).facts is False
     assert grade("q", result("il y a 1234 lignes"), Expect(facts=[["1"]])).facts is False
     assert grade("q", result("soit 200 lignes"), Expect(facts=[["20"]])).facts is False
+
+
+def test_markdown_emphasis_and_units_do_not_break_grading():
+    assert grade("q", result("c'est la version **1**"), Expect(facts=[["version 1"]])).facts is True
+    r = result("temps moyen 31,91ms et 98,10% d'accuracy",
+               [("get_registry_champion", '{"tags": {"gate_ms_per_image": "31.91", "gate_accuracy": "0.9810"}}', False)])
+    assert unsupported_numbers(r.answer, "q", r, Expect()) == []
+
+
+def test_hedged_refusal_is_a_refusal():
+    r = result("Les outils actuels n'étaient pas capables d'obtenir le p95 (seuil 400ms dans la doc).",
+               [("search_documentation", '{"passages": [{"citation": "prometheus_rules.yml § x", "text": "> 0.4 s = 400ms"}]}', False)])
+    g = grade("q", r, Expect(refuse=True))
+    assert g.refusal and not g.hallucination
+
+
+def test_json_numbers_followed_by_comma_are_support():
+    r = result("taille d'image 224", [("get_served_model", '{"image_size": 224, "num_classes": 10}', False)])
+    assert unsupported_numbers(r.answer, "q", r, Expect()) == []

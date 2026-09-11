@@ -26,13 +26,17 @@ REFUSAL_MARKERS = [
     "ne peut pas être", "pas possible", "je ne sais pas", "ne couvre pas", "ne mentionne pas",
     "cannot", "can't", "unable", "not able", "no tool", "don't have", "not available", "out of scope",
     "ne peux pas prédire", "impossible à prédire", "ne peux pas prévoir", "il faudrait",
+    "pas capable", "pas en mesure", "n'ont pas pu", "ne fournit pas", "ne fournissent pas",
 ]
 
 CITATION = re.compile(r"\[([^\[\]]+?)\s*§\s*([^\[\]]+?)\]")
-NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?![\w.])")
+# Units may follow a number ("31,91ms", "98,1%"): only digits/dots are excluded around it,
+# otherwise "31,91ms" was captured as the unsupported number "31" (seen in run 4).
+NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?!\d)")   # "224," counts; "p95" does not
 
 
 def norm(s: str) -> str:
+    s = re.sub(r"[*_`]+", "", s)          # markdown emphasis: "version **1**" == "version 1"
     s = unicodedata.normalize("NFKD", s.lower())
     s = "".join(ch for ch in s if not unicodedata.combining(ch))
     return re.sub(r"\s+", " ", s)
