@@ -111,6 +111,13 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
   (compose `include`), README narratif + schéma Mermaid, script GIF. 36 tests.
   Build Docker et `docker compose up` : voir ci-dessous. GIF réel : EN ATTENTE
   (fournisseur). README : chiffres du vrai agent à insérer.
-- Reste : (1) clé Anthropic ou LM Studio → `evaluate.py --reps 2` ×2 fournisseurs,
+- 2026-09-11 : PREMIÈRE MESURE RÉELLE (Qwen2.5-coder-7B, LM Studio, prompt v1) :
+  live 95 % outil / 86 % faits / 0 halluc ; rag 14 % outil / 55 % halluc (citations
+  inventées = placeholder du prompt recopié) ; mixed 0/2 ; 8 erreurs GPU
+  (ErrorDeviceLost, Iris Xe RAM pleine) isolées. Corrigés : grader zéros finaux,
+  prompt v2 (règle 3 exemple concret, règle 7), `--rescore`, écriture incrémentale.
+  Le conteneur copilot embarque encore le prompt v1 → `docker compose build copilot`.
+- Reste : (1) LM Studio avec GPU offload réduit → `evaluate.py --reps 2` (prompt v2),
+  puis Anthropic ; comparer ;
   chiffres dans le README, `record_demo.py` ; (2) `/reload` mutant + confirmation,
   `/predict`, `/metrics` parsé ; (3) passer terraops + terraops-copilot en public.

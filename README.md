@@ -99,10 +99,26 @@ same loop and the same tools:
 The liar caught two graders that were too lenient (`1` matching inside `1234`, *chargé*
 matching inside *rechargé*) before any real number was produced.
 
-**Real agent** — `python evaluate.py --reps 2` with `LLM_PROVIDER=anthropic`, then with
-`LLM_PROVIDER=lmstudio`; each run writes `eval_reports/<ts>_<provider>/report.md` with the
-git commit, the dataset hash and the ground truth snapshot it was scored against.
-*(Numbers to be added here from those reports.)*
+**Real agent, first measurement** — Qwen2.5-coder-7B (LM Studio, local, free), prompt v1,
+29 cases × 2 reps, deterministic graders, 50 rows scored (8 GPU-driver errors kept aside):
+
+| category | n | tool choice | facts | citation | refusal | over-refusal | hallucination |
+|---|---|---|---|---|---|---|---|
+| live | 22 | 95 | 86 | — | — | 0 | 0 |
+| rag | 22 | 14 | 27 | 9 | — | 14 | 55 |
+| mixed | 2 | 0 | 50 | — | — | 0 | 0 |
+| trap | 2 | 100 | 50 | — | — | 0 | 0 |
+| refuse | 2 | 100 | — | — | 100 | — | 0 |
+| **all** | **50** | **56** | **56** | **9** | **100** | **6** | **24** |
+
+Reading: a 7B local model routes to the live tools and quotes them faithfully (zero
+hallucination on live facts, "not enough data" preserved), but **skips the documentation
+tool on conceptual questions** and invents citations instead — 20 of 22 rag answers copied
+the prompt's `[source § section]` placeholder verbatim. That finding fixed the prompt
+(v2: concrete example, no citation without the tool) and a grader bug (`0.9810` vs
+`0.981`), both re-scored from saved trajectories with `python evaluate.py --rescore <dir>`
+instead of re-running 74 minutes of inference. Next: prompt v2 on LM Studio, then the same
+set on Anthropic (`LLM_PROVIDER=anthropic`) for the provider comparison.
 
 ## Run the demo
 

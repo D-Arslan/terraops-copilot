@@ -478,3 +478,64 @@ ce qui a cassé, questions recruteur. Le code et les docs projet sont en anglais
 4. Pourquoi votre image fait 3 Go, et que faudrait-il pour la réduire ?
 5. Comment votre entrypoint gère-t-il le démarrage lent de l'API ?
 6. Le GIF est-il une preuve ? Qu'est-ce qui le rend honnête ou non ?
+
+---
+
+## Première mesure réelle — Qwen2.5-coder-7B sur LM Studio (2026-09-11)
+
+Run `20260911T094019Z_lmstudio`, prompt v1, 29 cas × 2 reps, graders déterministes,
+pas de juge. 50 lignes notées, 8 erreurs mises de côté. Durée : 74 min (89 s par
+question en moyenne : puce graphique intégrée, RAM saturée).
+
+| catégorie | n | outil correct | faits | citation | refus | sur-refus | hallucination |
+|---|---|---|---|---|---|---|---|
+| live | 22 | 95 | 86 | — | — | 0 | 0 |
+| mixed | 2 | 0 | 50 | — | — | 0 | 0 |
+| rag | 22 | 14 | 27 | 9 | — | 14 | 55 |
+| refuse | 2 | 100 | — | — | 100 | — | 0 |
+| trap | 2 | 100 | 50 | — | — | 0 | 0 |
+| **total** | **50** | **56** | **56** | **9** | **100** | **6** | **24** |
+
+(chiffres re-notés avec le grader corrigé ; le rapport d'origine disait 77 % de
+faits en live — voir « ce que le run a appris au harnais »)
+
+### Ce que ça dit du modèle
+
+- **Un 7B local route bien vers les outils live** (95 %) et restitue leurs
+  valeurs (86 %), sans aucune hallucination sur cette catégorie. « Pas assez de
+  données » est resté « pas assez de données ».
+- **Il contourne le RAG** : sur 22 questions conceptuelles, il n'a appelé
+  `search_documentation` que 3 fois. Il répond de mémoire, et 55 % de ces
+  réponses portent une citation inventée. C'est LA faiblesse du modèle local, et
+  c'est exactement ce que l'éval devait rendre visible.
+- **Une question à deux outils** (servi = champion ?) échoue deux fois sur deux :
+  il n'appelle qu'un outil et conclut. Le raisonnement multi-étapes est la
+  limite suivante.
+- Sur le piège (« pourquoi le champion est la v3 ? »), une fois sur deux il a
+  bouclé : cinq appels identiques au registry, en écrivant l'appel EN TEXTE
+  (`[TOOL_REQUEST] …`) au lieu d'utiliser le mécanisme d'outils. `max_steps` a
+  arrêté la boucle — le garde-fou a servi.
+
+### Ce que le run a appris au harnais (et pourquoi on re-note au lieu de relancer)
+
+- **Bug de grader** : la réponse « 0.9810 » était refusée par l'alternative
+  « 0.981 » (zéro final). Corrigé + test. Le mode `--rescore` re-note un run à
+  partir de ses trajectoires sauvegardées, sans rappeler le modèle : 74 minutes
+  économisées, et le rapport re-noté porte le commit du grader qui l'a produit.
+- **Bug de prompt** : la règle 3 disait « cite as [source § section] » — le
+  petit modèle a recopié le gabarit tel quel dans 20 réponses. Un placeholder
+  est une instruction pour un grand modèle et un exemple à copier pour un petit.
+  Prompt v2 : exemple concret, interdiction de citer sans avoir appelé l'outil.
+- **Erreurs matériel isolées** : 8 lignes en `errors.jsonl` avec
+  `vk::Device … ErrorDeviceLost` — le pilote Vulkan de l'Iris Xe a lâché, RAM
+  pleine. Comptées à part, jamais comme des refus ratés : le refus reste à 100 %
+  sur les 2 lignes valides, avec la mention honnête « n = 2 ».
+- **Écriture incrémentale** : le runner n'écrivait qu'à la fin, on a attendu
+  74 min à l'aveugle. Il écrit maintenant chaque ligne + une ETA.
+
+### À faire
+
+- Relancer avec le prompt v2 (GPU offload réduit pour éviter le plantage), puis
+  Anthropic : même jeu, même graders, et comparer les deux fournisseurs.
+- Le RAG évité par le petit modèle : piste = forcer un appel à la doc quand la
+  question est conceptuelle (routage côté code) — à mesurer, pas à supposer.
