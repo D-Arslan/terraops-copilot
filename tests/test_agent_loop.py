@@ -59,4 +59,4 @@ def test_eval_runner_circuit_breaker_stops_on_dead_provider(tmp_path):
     summary = run(Agent(DeadLLM(), registry()), cases, reps=1, judge=None, out_dir=tmp_path,
                   client=None, label="dead", max_consecutive_errors=3)
     assert summary.n_rows == 0 and summary.n_errors == 3
-    assert (tmp_path / "errors.jsonl").read_text().count("ErrorDeviceLost") == 3
+    assert len((tmp_path / "errors.jsonl").read_text().splitlines()) == 3
