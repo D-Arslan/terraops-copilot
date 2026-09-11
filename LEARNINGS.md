@@ -605,3 +605,63 @@ d'éval annonce.
 - CPU seul : 300 s/question (prompt de 1 900 tokens sur 4 cœurs). Non viable.
 - Le premier appel après chargement paie tout le prompt ; les suivants réutilisent
   le cache de préfixe : toujours échauffer avant de chronométrer.
+
+---
+
+## La mesure de référence — Claude Opus 5 (2026-09-11, soir)
+
+Run `20260911T174119Z_anthropic` : 29 cas × 2 reps = 58 lignes, 0 erreur, 10 min,
+10 s par question en moyenne (5 s une fois le cache de prompt chaud), ≈ 2,5 $ de
+crédits (337 k tokens en entrée, 31 k en sortie). Re-noté avec les graders du
+commit courant, comme le 3B.
+
+| modèle | lignes | outil | faits | citation | refus | sur-refus | halluc. | s/question |
+|---|---|---|---|---|---|---|---|---|
+| **Claude Opus 5** | 58 | **97** | **94** | **100** | **90** | 4 | **3** | 10 |
+| Qwen2.5-3B (local) | 29 | 69 | 54 | 27 | 60 | 4 | 17 | 46 |
+
+Par catégorie, Claude : live 100 % outil / 95 % faits ; RAG 100 % outil / 91 %
+faits / 100 % citations réelles ; mixed 2/2 (les DEUX outils, ce qu'aucun modèle
+local n'a fait) ; piège 2/2 (« le champion n'est pas la v3, c'est la v1 ») ; refus
+9/10.
+
+### Ce que Claude fait que les locaux ne font pas
+
+- Il **enchaîne deux outils** quand la question le demande (servi = champion ?).
+- Il **contredit la fausse prémisse** avec la donnée live.
+- Il **refuse en expliquant** ce qu'il faudrait (« un backend de métriques,
+  exposé via un outil dédié ») au lieu d'inventer.
+- Il **lit la description de l'outil** : sur « quel est le champion ? », il ajoute
+  spontanément « c'est la vérité du registry, pas forcément ce que sert l'API »,
+  la nuance écrite dans la description de `get_registry_champion` au Sprint 1.
+
+### Les 4 lignes imparfaites sur 58, lues une à une
+
+- rag-07, rag-11 (1 rep sur 2 chacune) : la recherche n'a pas ramené le passage
+  qui contient « v4, 97,65 % » ou « 97,8 % » ; Claude a répondu prudemment avec
+  ce qu'il avait, citations réelles, sans inventer. **Rappel du retrieval**, pas
+  du modèle.
+- live-10 (1 rep) : réponse parfaite, mais Claude écrit « ce n'est donc pas
+  « pas de dérive » » — la phrase interdite citée pour la nier. Faux positif
+  d'un grader à chaînes de caractères ; assumé et documenté plutôt que bricolé.
+- refuse-03 (1 rep) : refuse correctement, puis donne « l'approximation la plus
+  proche » via le rapport de dérive — l'outil autorisé n'était pas dans la liste
+  de ce cas. Discutable des deux côtés.
+
+### Ce que le run de Claude a appris au harnais
+
+Trois faux positifs de plus, tous sur des réponses PLUS riches que celles des
+locaux : les secondes d'un horodatage prises pour un nombre (« 12:04:32 »),
+« 24 h » compté comme chiffre inventé, « je ne peux pas recharger » compté comme
+« rechargé », « impossible à savoir » non reconnu comme refus. Avant correction
+Claude affichait 15 % d'hallucination ; après, 3 %. **Un grader calibré sur des
+petits modèles sous-note un grand modèle** — raison de plus pour lire les KO.
+
+### La phrase d'entretien
+
+« Sur 29 questions à vérité terrain vérifiable par l'API, mon agent avec Claude
+Opus 5 choisit le bon outil dans 97 % des cas, répond juste dans 94 %, cite une
+source réelle dans 100 % des questions documentaires, refuse correctement 9 fois
+sur 10 et hallucine dans 3 % des lignes. Le même agent avec un 3B local tombe à
+69 / 54 / 27 / 60 / 17. Voici le harnais, les trajectoires et les sept défauts de
+grader que la lecture des échecs a révélés. »

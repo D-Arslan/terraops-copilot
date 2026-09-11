@@ -99,32 +99,37 @@ same loop and the same tools:
 The liar caught two graders that were too lenient (`1` matching inside `1234`, *chargé*
 matching inside *rechargé*) before any real number was produced.
 
-**Real agent — four local runs, one afternoon** (LM Studio on a 16 GB laptop with an
-integrated GPU, 29 cases, 1 rep, deterministic graders, all re-scored with the current
-graders via `python evaluate.py --rescore <dir>`):
+**Real agent — reference vs local.** Same 29 cases, same deterministic graders, every
+run re-scored with the current grader version (`python evaluate.py --rescore <dir>`):
 
-| run | model | prompt | transport | rows | tool choice | facts | citation | refusal | halluc. |
+| model | rows | tool choice | facts | citation | refusal | over-refusal | halluc. | s/question | cost |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Qwen2.5-coder-7B | v1 | raw | 50 (+8 GPU errors) | 56 | 56 | 9 | 100 (n=2) | 24 |
-| 2 | Qwen2.5-coder-7B | v2 | raw | 29 | 48 | 42 | 18 | 40 | 24 |
-| 3 | Qwen2.5-coder-7B | v2 | + salvage | 10 (+5 GPU errors) | 90 | 80 | — | — | 10 |
-| 4 | **Qwen2.5-3B** | v2 | + salvage | **29, 0 errors** | **69** | **54** | **27** | **60** | **17** |
+| **Claude Opus 5** (Anthropic) | 58 (2 reps) | **97** | **94** | **100** | **90** | 4 | **3** | 10 | ≈ $2.5 |
+| Qwen2.5-3B (LM Studio, local) | 29 | 69 | 54 | 27 | 60 | 4 | 17 | 46 | 0 |
+| Qwen2.5-coder-7B (local, best partial run) | 10 | 90 | 80 | — | — | 0 | 10 | 98 | 0 |
 
-What the runs found, in order: the 7B copied the prompt's `[source § section]`
+Per category, Claude: live 100 % tool / 95 % facts; rag 100 % tool / 91 % facts / 100 %
+real citations; the two-tool question 2/2 (no local model managed it); the false-premise
+trap 2/2; refusals 9/10. Its four imperfect rows out of 58 are two retrieval misses
+answered cautiously with real citations, one string-grader false positive (it wrote
+*"ce n'est donc pas « pas de dérive »"*), and one debatable "closest approximation" on a
+refuse case.
+
+What the local runs found before that: the 7B copied the prompt's `[source § section]`
 placeholder as a fake citation in 20 of 22 rag answers (prompt v2: a concrete example,
-no citation without the tool → 3 of 11); it then wrote tool calls as text after its
-"why" sentence and the OpenAI-compatible server dropped them (the adapter now salvages
-`[tool] {json} [END_TOOL_REQUEST]` → live routing 73 → 90 %); the integrated GPU died
-under sustained load (errors quarantined, circuit breaker added); the 3B is three times
-faster, finishes cleanly, and actually uses the documentation tool (55 % of rag questions
-vs 14-18 % for the 7B). Constant across runs: zero hallucination on live facts, but
-invented facts on *refuse* questions and a lost false-premise trap - refusing and
-contradicting are harder than calling a tool. About one KO row in three was a grader
-defect, not a model one; seven grader fixes came out of reading them.
+no citation without the tool); it then wrote tool calls as text after its "why" sentence
+and the OpenAI-compatible server dropped them (the adapter now salvages
+`[tool] {json} [END_TOOL_REQUEST]`, live routing 73 → 90 %); the laptop's integrated GPU
+died under sustained load (errors quarantined, circuit breaker added); the 3B is three
+times faster, finishes cleanly and actually uses the documentation tool. Across all runs:
+local models do not hallucinate live facts, but invent on *refuse* questions and fall for
+the false premise. About one KO row in three was a grader defect, not a model one;
+eleven grader fixes came out of reading them - several only surfaced on Claude's richer
+answers, which a grader calibrated on small models under-scored (15 % → 3 %
+hallucination after fixing timestamps, "24 h", *"impossible à savoir"*).
 
-With 29 cases × 1 rep the noise floor is ~±18 points on a rate: only the large effects
-above are effects. Next: the same set on Anthropic (`LLM_PROVIDER=anthropic`) as the
-reference measurement, then more reps.
+Noise floor: 29 cases × 2 reps ≈ ±13 points on a rate; the Claude-vs-local gaps are far
+above it, differences between local runs mostly are not.
 
 ## Run the demo
 

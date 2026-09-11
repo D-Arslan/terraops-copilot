@@ -119,6 +119,11 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
   Modèle local de référence sur cette machine : **qwen2.5-3b-instruct**
   (`lms load qwen2.5-3b-instruct --context-length 8192 --gpu max`, échauffer avant).
   Le conteneur copilot embarque encore le prompt v1 → `docker compose build copilot`.
+- 2026-09-11 soir : MESURE DE RÉFÉRENCE Claude Opus 5 (58 lignes, 0 erreur, 10 min,
+  ≈ 2,5 $) : outil 97 / faits 94 / citation 100 / refus 90 / halluc 3. Mixed 2/2, piège
+  2/2. 4 lignes imparfaites lues (2 rappels RAG, 1 faux positif grader, 1 discutable).
+  4 faux positifs de grader supplémentaires trouvés sur les réponses riches de Claude.
+  `.env` : LLM_PROVIDER=anthropic, clé présente (jamais dans le chat ni dans git).
 - Reste : (1) LM Studio avec GPU offload réduit → `evaluate.py --reps 2` (prompt v2),
   puis Anthropic ; comparer ;
   chiffres dans le README, `record_demo.py` ; (2) `/reload` mutant + confirmation,
