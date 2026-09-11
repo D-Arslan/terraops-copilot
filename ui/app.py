@@ -49,7 +49,10 @@ def latest_eval() -> dict | None:
     real = [p for p in reports if not any(k in p.parent.name for k in ("oracle", "null", "liar"))]
     if not real:
         return None
-    return json.loads(real[-1].read_text(encoding="utf-8"))
+    latest = real[-1]
+    # A re-scored summary (graders fixed after the run) supersedes the original one.
+    rescored = latest.with_name("summary.rescored.json")
+    return json.loads((rescored if rescored.exists() else latest).read_text(encoding="utf-8"))
 
 
 def kind_of(tool: str) -> str:
@@ -114,7 +117,7 @@ def run_question(agent, question: str) -> dict:
 
 def render_turn(turn: dict) -> None:
     """Re-render a past turn from its recorded events (history)."""
-    with st.status("🧭 Raisonnement", expanded=False, state="complete"):
+    with st.status("🧭 Raisonnement", expanded=True, state="complete"):   # the route IS the demo
         for ev in turn["events"]:
             if ev["type"] == "tool_call":
                 if ev.get("reason"):
