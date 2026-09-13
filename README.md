@@ -6,6 +6,8 @@ checks every answer against the platform itself: **97 % correct tool choice, 94 
 facts, 3 % hallucination** with Claude Opus 5, and the same numbers measured for a 3B model
 running on a laptop.
 
+[![ci](https://github.com/D-Arslan/terraops-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/D-Arslan/terraops-copilot/actions/workflows/ci.yml)
+
 The agent is not the subject. The subject is whether an agent that can *ask the live system*
 or *read the documentation* picks the right one, and whether a number can be put on that.
 
