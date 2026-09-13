@@ -77,7 +77,7 @@ via HTTP. **On ne modifie jamais le code de TerraOps.**
 - Stack TerraOps : `cd D:\TerraOps && docker compose up -d` (API prête ~40 s ;
   avant cela `/health` répond par une connexion fermée, pas par un refus).
 - Test d'acceptation Sprint 0 : `python scripts/audit_terraops.py` (7/7 attendu).
-- Tests : `python -m pytest` (36 tests, sans réseau ni modèle : faux embedder).
+- Tests : `python -m pytest` (44 tests, sans réseau ni modèle : faux embedder).
 - UI : `streamlit run ui/app.py --server.port 8502`. Démo complète :
   `docker compose up` (depuis ce dossier ; TerraOps cloné à côté ou `TERRAOPS_REPO`).
 - GIF : `python scripts/record_demo.py` avec l'UI lancée sur un VRAI fournisseur.

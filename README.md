@@ -99,16 +99,24 @@ same loop and the same tools:
 | liar (invented numbers) | 17 | 4 | 0 | 0 | 0 | 100 |
 
 The liar caught two graders that were too lenient (`1` matching inside `1234`, *chargé*
-matching inside *rechargé*) before any real number was produced.
+matching inside *rechargé*) before any real number was produced. The three controls were
+re-run on 2026-09-13 with the current graders; reports in [docs/eval/](docs/eval/).
 
 **Real agent — reference vs local.** Same 29 cases, same deterministic graders, every
-run re-scored with the current grader version (`python evaluate.py --rescore <dir>`):
+run re-scored with the current grader version (`python evaluate.py --rescore <dir>`).
+Reports, original and rescored, are versioned in [docs/eval/](docs/eval/):
 
 | model | rows | tool choice | facts | citation | refusal | over-refusal | halluc. | s/question | cost |
 |---|---|---|---|---|---|---|---|---|---|
-| **Claude Opus 5** (Anthropic) | 58 (2 reps) | **97** | **94** | **100** | **90** | 4 | **3** | 10 | ≈ $2.5 |
-| Qwen2.5-3B (LM Studio, local) | 29 | 69 | 54 | 27 | 60 | 4 | 17 | 46 | 0 |
-| Qwen2.5-coder-7B (local, best partial run) | 10 | 90 | 80 | — | — | 0 | 10 | 98 | 0 |
+| **Claude Opus 5** (Anthropic), rescored | 58 (2 reps) | **97** | **94** | **100** | **90** | 4 | **3** | 10 | $2.46 |
+| Qwen2.5-3B (LM Studio, local), rescored | 29 | 69 | 54 | 27 | 60 | 4 | 17 | 46 | 0 |
+| Qwen2.5-coder-7B (local, best partial run) | 10 | 90 | 80 | — | — | 0 | 10 | 60 | 0 |
+
+*Rescored* means graded again with the graders at commit `21128ae`, after eleven fixes
+made while reading the answers; the original reports scored Claude at 50 refusal /
+15.5 hallucination and the 3B at 40 / 24.1 (`summary.json` vs `summary.rescored.json`).
+Cost is the list price of 336 896 input and 30 925 output tokens from the report,
+prompt caching not accounted.
 
 Per category, Claude: live 100 % tool / 95 % facts; rag 100 % tool / 91 % facts / 100 %
 real citations; the two-tool question 2/2 (no local model managed it); the false-premise
@@ -117,17 +125,19 @@ answered cautiously with real citations, one string-grader false positive (it wr
 *"ce n'est donc pas « pas de dérive »"*), and one debatable "closest approximation" on a
 refuse case.
 
-What the local runs found before that: the 7B copied the prompt's `[source § section]`
-placeholder as a fake citation in 20 of 22 rag answers (prompt v2: a concrete example,
-no citation without the tool); it then wrote tool calls as text after its "why" sentence
-and the OpenAI-compatible server dropped them (the adapter now salvages
-`[tool] {json} [END_TOOL_REQUEST]`, live routing 73 → 90 %); the laptop's integrated GPU
-died under sustained load (errors quarantined, circuit breaker added); the 3B is three
-times faster, finishes cleanly and actually uses the documentation tool. Across all runs:
-local models do not hallucinate live facts, but invent on *refuse* questions and fall for
-the false premise. About one KO row in three was a grader defect, not a model one;
-eleven grader fixes came out of reading them - several only surfaced on Claude's richer
-answers, which a grader calibrated on small models under-scored (15 % → 3 %
+What the local runs found before that: with prompt v1, the 7B cited a passage the tool
+had actually returned in 2 of 22 rag answers and invented a `[source § …]` citation in
+12 of them, copying the prompt's placeholder (prompt v2: a concrete example, no citation
+without the tool; 3 of 11 invented afterwards, still 2 real); it then wrote tool calls
+as text after its "why" sentence and the OpenAI-compatible server dropped them (the
+adapter now salvages `[tool] {json} [END_TOOL_REQUEST]`, live routing 73 → 90 %); the
+laptop's integrated GPU died under sustained load (errors quarantined, circuit breaker
+added); the 3B is three times faster, finishes cleanly and actually uses the
+documentation tool. Across all runs: local models do not hallucinate live facts, but
+invent on *refuse* questions and fall for the false premise. About one KO row in three
+was a grader defect, not a model one; eleven grader fixes came out of reading them
+(seven from the local runs, four from Claude's) - several only surfaced on Claude's
+richer answers, which a grader calibrated on small models under-scored (15 % → 3 %
 hallucination after fixing timestamps, "24 h", *"impossible à savoir"*).
 
 Noise floor: 29 cases × 2 reps ≈ ±13 points on a rate; the Claude-vs-local gaps are far
@@ -153,7 +163,7 @@ pip install -e . && pip install pytest
 python -m terraops_copilot.rag.ingest                       # vector store
 python -m terraops_copilot --trace "quel est le modèle champion actuel ?"
 streamlit run ui/app.py --server.port 8502                  # the chat UI
-python -m pytest                                            # 36 tests, no network, no model
+python -m pytest                                            # 44 tests, no network, no model
 python evaluate.py --agent oracle                           # harness self-test
 python scripts/record_demo.py                               # regenerate docs/demo.gif
 ```
@@ -199,5 +209,6 @@ docker/, Dockerfile, docker-compose.yml   one-command demo
   rank two close prompts. More reps or more cases before any prompt hill-climbing.
 - The LLM judge is not calibrated against human labels yet; its verdicts are reported, not
   trusted blindly.
-- Two of the seven TerraOps endpoints (`/predict`, `/reload`) are not exposed as tools yet;
-  `/reload` will be the first mutating tool, behind a human confirmation.
+- Five of the seven TerraOps endpoints (`/predict`, `/predict/batch`, `/metrics`,
+  `/monitoring/status`, `/reload`) are not exposed as tools yet; `/reload` will be the
+  first mutating tool, behind a human confirmation.

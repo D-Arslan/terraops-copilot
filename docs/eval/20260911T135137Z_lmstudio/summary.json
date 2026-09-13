@@ -1,0 +1,565 @@
+{
+  "n_cases": 29,
+  "n_rows": 10,
+  "n_errors": 5,
+  "metrics": {
+    "n": 10,
+    "tool_choice_pct": 90.0,
+    "factual_accuracy_pct": 80.0,
+    "citation_pct": null,
+    "correct_refusal_pct": null,
+    "over_refusal_pct": 0.0,
+    "hallucination_pct": 10.0,
+    "mean_llm_calls": 2,
+    "mean_latency_s": 60.03,
+    "input_tokens": 41048,
+    "output_tokens": 936
+  },
+  "per_category": {
+    "live": {
+      "n": 10,
+      "tool_choice_pct": 90.0,
+      "factual_accuracy_pct": 80.0,
+      "citation_pct": null,
+      "correct_refusal_pct": null,
+      "over_refusal_pct": 0.0,
+      "hallucination_pct": 10.0,
+      "mean_llm_calls": 2,
+      "mean_latency_s": 60.03,
+      "input_tokens": 41048,
+      "output_tokens": 936
+    },
+    "mixed": {
+      "n": 0,
+      "tool_choice_pct": null,
+      "factual_accuracy_pct": null,
+      "citation_pct": null,
+      "correct_refusal_pct": null,
+      "over_refusal_pct": null,
+      "hallucination_pct": null,
+      "mean_llm_calls": null,
+      "mean_latency_s": null,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    "rag": {
+      "n": 0,
+      "tool_choice_pct": null,
+      "factual_accuracy_pct": null,
+      "citation_pct": null,
+      "correct_refusal_pct": null,
+      "over_refusal_pct": null,
+      "hallucination_pct": null,
+      "mean_llm_calls": null,
+      "mean_latency_s": null,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    "refuse": {
+      "n": 0,
+      "tool_choice_pct": null,
+      "factual_accuracy_pct": null,
+      "citation_pct": null,
+      "correct_refusal_pct": null,
+      "over_refusal_pct": null,
+      "hallucination_pct": null,
+      "mean_llm_calls": null,
+      "mean_latency_s": null,
+      "input_tokens": 0,
+      "output_tokens": 0
+    },
+    "trap": {
+      "n": 0,
+      "tool_choice_pct": null,
+      "factual_accuracy_pct": null,
+      "citation_pct": null,
+      "correct_refusal_pct": null,
+      "over_refusal_pct": null,
+      "hallucination_pct": null,
+      "mean_llm_calls": null,
+      "mean_latency_s": null,
+      "input_tokens": 0,
+      "output_tokens": 0
+    }
+  },
+  "per_case": {
+    "live-01": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 100.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_served_model"
+      ]
+    },
+    "live-02": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_api_health"
+      ]
+    },
+    "live-03": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_registry_champion"
+      ]
+    },
+    "live-04": {
+      "category": "live",
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "search_documentation"
+      ]
+    },
+    "live-05": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_registry_champion"
+      ]
+    },
+    "live-06": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_served_model"
+      ]
+    },
+    "live-07": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_served_model"
+      ]
+    },
+    "live-08": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_served_model"
+      ]
+    },
+    "live-09": {
+      "category": "live",
+      "facts": 100.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_served_model"
+      ]
+    },
+    "live-10": {
+      "category": "live",
+      "facts": 0.0,
+      "tool_choice": 100.0,
+      "hallucination": 0.0,
+      "refusal": null,
+      "citation": null,
+      "tools": [
+        "get_drift_report"
+      ]
+    }
+  },
+  "meta": {
+    "label": "lmstudio",
+    "generated_at": "2026-09-11T14:02:50.862670+00:00",
+    "agent_llm": "openai-compat/qwen2.5-coder-7b-instruct",
+    "judge_llm": "none (deterministic only)",
+    "dataset_hash": "d17316435c33",
+    "categories": {
+      "live": 11,
+      "mixed": 1,
+      "rag": 11,
+      "refuse": 5,
+      "trap": 1
+    },
+    "reps": 1,
+    "python": "3.12.10",
+    "argv": [
+      "evaluate.py",
+      "--reps",
+      "1"
+    ],
+    "ground_truth": {
+      "live-01": {
+        "required_tools": [
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_api_health",
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "version 1",
+            "v1",
+            "la 1",
+            "numéro 1",
+            "version: 1",
+            "version 1 "
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-02": {
+        "required_tools": [
+          "get_api_health"
+        ],
+        "allowed_tools": [
+          "get_api_health",
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "chargé",
+            "charge",
+            "loaded",
+            "oui",
+            "yes",
+            "opérationnel",
+            "tourne",
+            "up"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-03": {
+        "required_tools": [
+          "get_registry_champion"
+        ],
+        "allowed_tools": [
+          "get_registry_champion",
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "version 1",
+            "v1",
+            "la 1",
+            "numéro 1",
+            "version: 1",
+            "version 1 "
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-04": {
+        "required_tools": [
+          "get_registry_champion"
+        ],
+        "allowed_tools": [
+          "get_registry_champion"
+        ],
+        "facts": [
+          [
+            "0,98",
+            "0,981",
+            "0.98",
+            "0.981",
+            "98",
+            "98,1",
+            "98.1"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-05": {
+        "required_tools": [
+          "get_registry_champion"
+        ],
+        "allowed_tools": [
+          "get_registry_champion"
+        ],
+        "facts": [
+          [
+            "4077a61d"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-06": {
+        "required_tools": [
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "10 classes",
+            "10 catégories",
+            " 10 "
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-07": {
+        "required_tools": [
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "AnnualCrop"
+          ],
+          [
+            "Forest"
+          ],
+          [
+            "HerbaceousVegetation"
+          ],
+          [
+            "Highway"
+          ],
+          [
+            "Industrial"
+          ],
+          [
+            "Pasture"
+          ],
+          [
+            "PermanentCrop"
+          ],
+          [
+            "Residential"
+          ],
+          [
+            "River"
+          ],
+          [
+            "SeaLake"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-08": {
+        "required_tools": [
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "cpu"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-09": {
+        "required_tools": [
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "224"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "live-10": {
+        "required_tools": [
+          "get_drift_report"
+        ],
+        "allowed_tools": [
+          "get_drift_report"
+        ],
+        "facts": [
+          [
+            "6"
+          ],
+          [
+            "200"
+          ]
+        ],
+        "forbidden": [
+          "pas de dérive",
+          "aucune dérive",
+          "no drift",
+          "pas de drift"
+        ],
+        "cite": false,
+        "refuse": false
+      },
+      "live-11": {
+        "required_tools": [
+          "get_drift_report"
+        ],
+        "allowed_tools": [
+          "get_drift_report"
+        ],
+        "facts": [
+          [
+            "6"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "mixed-01": {
+        "required_tools": [
+          "get_registry_champion",
+          "get_served_model"
+        ],
+        "allowed_tools": [
+          "get_registry_champion",
+          "get_served_model"
+        ],
+        "facts": [
+          [
+            "version 1",
+            "v1",
+            "la 1",
+            "numéro 1",
+            "version: 1",
+            "version 1 "
+          ],
+          [
+            "oui",
+            "yes",
+            "bien",
+            "identique",
+            "même",
+            "same"
+          ]
+        ],
+        "forbidden": [],
+        "cite": false,
+        "refuse": false
+      },
+      "trap-01": {
+        "required_tools": [
+          "get_registry_champion"
+        ],
+        "allowed_tools": [
+          "get_registry_champion",
+          "get_served_model",
+          "search_documentation"
+        ],
+        "facts": [
+          [
+            "version 1",
+            "v1",
+            "la 1",
+            "numéro 1",
+            "version: 1",
+            "version 1 "
+          ]
+        ],
+        "forbidden": [
+          "est bien la version 3",
+          "est la version 3",
+          "champion est la v3"
+        ],
+        "cite": false,
+        "refuse": false
+      },
+      "rag-01": {
+        "required_tools": [
+          "search_documentation"
+        ],
+        "allowed_tools": [
+          "search_documentation"
+        ],
+        "facts": [
+          [
+            "distribution",
+            "entrée",
+            "input",
+            "données"
+          ]
+        ],
+        "forbidden": [],
+        "cite": true,
+        "refuse": false
+      },
+      "rag-02": {
+        "required_tools": [
+          "search_documentation"
+        ],
+        "allowed_tools": [
+          "search_documentation"
+        ],
+        "facts": [
+          [
+            "champion"
+          ],
+          [
+            "challenger",
+            "gate"
+          ]
+        ],
+        "forbidden": [],
+        "cite": true,
+        "refuse": false
+      }
+    },
+    "system_prompt_sha": "d8e4259e6224",
+    "git_commit": "c019c41",
+    "tools_offered": [
+      "get_api_health",
+      "get_served_model",
+      "get_registry_champion",
+      "get_drift_report",
+      "search_documentation"
+    ]
+  }
+}
