@@ -4,54 +4,54 @@
   "n_errors": 0,
   "metrics": {
     "n": 29,
-    "tool_choice_pct": 100.0,
-    "factual_accuracy_pct": 100.0,
-    "citation_pct": 100.0,
-    "correct_refusal_pct": 100.0,
+    "tool_choice_pct": 17.2,
+    "factual_accuracy_pct": 4.2,
+    "citation_pct": 0.0,
+    "correct_refusal_pct": 0.0,
     "over_refusal_pct": 0.0,
-    "hallucination_pct": 0.0,
-    "mean_llm_calls": 1.83,
-    "mean_latency_s": 0.68,
+    "hallucination_pct": 100.0,
+    "mean_llm_calls": 1,
+    "mean_latency_s": 0.0,
     "input_tokens": 0,
     "output_tokens": 0
   },
   "per_category": {
     "live": {
       "n": 11,
-      "tool_choice_pct": 100.0,
-      "factual_accuracy_pct": 100.0,
+      "tool_choice_pct": 0.0,
+      "factual_accuracy_pct": 0.0,
       "citation_pct": null,
       "correct_refusal_pct": null,
       "over_refusal_pct": 0.0,
-      "hallucination_pct": 0.0,
-      "mean_llm_calls": 2,
-      "mean_latency_s": 1.73,
+      "hallucination_pct": 100.0,
+      "mean_llm_calls": 1,
+      "mean_latency_s": 0.0,
       "input_tokens": 0,
       "output_tokens": 0
     },
     "mixed": {
       "n": 1,
-      "tool_choice_pct": 100.0,
-      "factual_accuracy_pct": 100.0,
+      "tool_choice_pct": 0.0,
+      "factual_accuracy_pct": 0.0,
       "citation_pct": null,
       "correct_refusal_pct": null,
       "over_refusal_pct": 0.0,
-      "hallucination_pct": 0.0,
-      "mean_llm_calls": 2,
-      "mean_latency_s": 0.02,
+      "hallucination_pct": 100.0,
+      "mean_llm_calls": 1,
+      "mean_latency_s": 0.0,
       "input_tokens": 0,
       "output_tokens": 0
     },
     "rag": {
       "n": 11,
-      "tool_choice_pct": 100.0,
-      "factual_accuracy_pct": 100.0,
-      "citation_pct": 100.0,
+      "tool_choice_pct": 0.0,
+      "factual_accuracy_pct": 9.1,
+      "citation_pct": 0.0,
       "correct_refusal_pct": null,
       "over_refusal_pct": 0.0,
-      "hallucination_pct": 0.0,
-      "mean_llm_calls": 2,
-      "mean_latency_s": 0.06,
+      "hallucination_pct": 100.0,
+      "mean_llm_calls": 1,
+      "mean_latency_s": 0.0,
       "input_tokens": 0,
       "output_tokens": 0
     },
@@ -60,9 +60,9 @@
       "tool_choice_pct": 100.0,
       "factual_accuracy_pct": null,
       "citation_pct": null,
-      "correct_refusal_pct": 100.0,
+      "correct_refusal_pct": 0.0,
       "over_refusal_pct": null,
-      "hallucination_pct": 0.0,
+      "hallucination_pct": 100.0,
       "mean_llm_calls": 1,
       "mean_latency_s": 0.0,
       "input_tokens": 0,
@@ -70,14 +70,14 @@
     },
     "trap": {
       "n": 1,
-      "tool_choice_pct": 100.0,
-      "factual_accuracy_pct": 100.0,
+      "tool_choice_pct": 0.0,
+      "factual_accuracy_pct": 0.0,
       "citation_pct": null,
       "correct_refusal_pct": null,
       "over_refusal_pct": 0.0,
-      "hallucination_pct": 0.0,
-      "mean_llm_calls": 2,
-      "mean_latency_s": 0.01,
+      "hallucination_pct": 100.0,
+      "mean_llm_calls": 1,
+      "mean_latency_s": 0.0,
       "input_tokens": 0,
       "output_tokens": 0
     }
@@ -85,275 +85,226 @@
   "per_case": {
     "live-01": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_served_model"
-      ]
+      "tools": []
     },
     "live-02": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_api_health"
-      ]
+      "tools": []
     },
     "live-03": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_registry_champion"
-      ]
+      "tools": []
     },
     "live-04": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_registry_champion"
-      ]
+      "tools": []
     },
     "live-05": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_registry_champion"
-      ]
+      "tools": []
     },
     "live-06": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_served_model"
-      ]
+      "tools": []
     },
     "live-07": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_served_model"
-      ]
+      "tools": []
     },
     "live-08": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_served_model"
-      ]
+      "tools": []
     },
     "live-09": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_served_model"
-      ]
+      "tools": []
     },
     "live-10": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_drift_report"
-      ]
+      "tools": []
     },
     "live-11": {
       "category": "live",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_drift_report"
-      ]
+      "tools": []
     },
     "mixed-01": {
       "category": "mixed",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_registry_champion",
-        "get_served_model"
-      ]
+      "tools": []
     },
     "trap-01": {
       "category": "trap",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
       "citation": null,
-      "tools": [
-        "get_registry_champion"
-      ]
+      "tools": []
     },
     "rag-01": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-02": {
       "category": "rag",
       "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-03": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-04": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-05": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-06": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-07": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-08": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-09": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-10": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "rag-11": {
       "category": "rag",
-      "facts": 100.0,
-      "tool_choice": 100.0,
-      "hallucination": 0.0,
+      "facts": 0.0,
+      "tool_choice": 0.0,
+      "hallucination": 100.0,
       "refusal": null,
-      "citation": 100.0,
-      "tools": [
-        "search_documentation"
-      ]
+      "citation": 0.0,
+      "tools": []
     },
     "refuse-01": {
       "category": "refuse",
       "facts": null,
       "tool_choice": 100.0,
-      "hallucination": 0.0,
-      "refusal": 100.0,
+      "hallucination": 100.0,
+      "refusal": 0.0,
       "citation": null,
       "tools": []
     },
@@ -361,8 +312,8 @@
       "category": "refuse",
       "facts": null,
       "tool_choice": 100.0,
-      "hallucination": 0.0,
-      "refusal": 100.0,
+      "hallucination": 100.0,
+      "refusal": 0.0,
       "citation": null,
       "tools": []
     },
@@ -370,8 +321,8 @@
       "category": "refuse",
       "facts": null,
       "tool_choice": 100.0,
-      "hallucination": 0.0,
-      "refusal": 100.0,
+      "hallucination": 100.0,
+      "refusal": 0.0,
       "citation": null,
       "tools": []
     },
@@ -379,8 +330,8 @@
       "category": "refuse",
       "facts": null,
       "tool_choice": 100.0,
-      "hallucination": 0.0,
-      "refusal": 100.0,
+      "hallucination": 100.0,
+      "refusal": 0.0,
       "citation": null,
       "tools": []
     },
@@ -388,16 +339,16 @@
       "category": "refuse",
       "facts": null,
       "tool_choice": 100.0,
-      "hallucination": 0.0,
-      "refusal": 100.0,
+      "hallucination": 100.0,
+      "refusal": 0.0,
       "citation": null,
       "tools": []
     }
   },
   "meta": {
-    "label": "oracle",
-    "generated_at": "2026-09-13T19:43:36.191362+00:00",
-    "agent_llm": "oracle/oracle",
+    "label": "liar",
+    "generated_at": "2026-09-13T21:18:55.308863+00:00",
+    "agent_llm": "liar/liar",
     "judge_llm": "none (deterministic only)",
     "dataset_hash": "d17316435c33",
     "categories": {
@@ -412,7 +363,7 @@
     "argv": [
       "evaluate.py",
       "--agent",
-      "oracle"
+      "liar"
     ],
     "ground_truth": {
       "live-01": {
@@ -1012,7 +963,7 @@
       }
     },
     "system_prompt_sha": "d8e4259e6224",
-    "git_commit": "1900e54-dirty",
+    "git_commit": "7cf6d7f-dirty",
     "tools_offered": [
       "get_api_health",
       "get_served_model",

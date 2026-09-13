@@ -347,7 +347,7 @@
   },
   "meta": {
     "label": "null",
-    "generated_at": "2026-09-13T19:44:15.321441+00:00",
+    "generated_at": "2026-09-13T21:17:44.126177+00:00",
     "agent_llm": "null/null",
     "judge_llm": "none (deterministic only)",
     "dataset_hash": "d17316435c33",
@@ -963,7 +963,7 @@
       }
     },
     "system_prompt_sha": "d8e4259e6224",
-    "git_commit": "1900e54-dirty",
+    "git_commit": "7cf6d7f-dirty",
     "tools_offered": [
       "get_api_health",
       "get_served_model",

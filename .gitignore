@@ -1,4 +1,8 @@
 .env
+*.local
+.claude/
+CLAUDE.md
+LEARNINGS.md
 __pycache__/
 *.pyc
 .venv/
@@ -7,3 +11,4 @@ __pycache__/
 .rag_store/
 eval_reports/
 *.egg-info/
+.local/

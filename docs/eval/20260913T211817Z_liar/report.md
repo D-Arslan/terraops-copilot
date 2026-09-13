@@ -1,6 +1,6 @@
 # TerraOps Copilot — evaluation report (liar)
 
-- generated: 2026-09-13T19:44:57.171328+00:00 · code: `1900e54-dirty`
+- generated: 2026-09-13T21:18:55.308863+00:00 · code: `7cf6d7f-dirty`
 - agent: `liar/liar` · judge: `none (deterministic only)`
 - dataset: 29 cases (hash `d17316435c33`) · {'live': 11, 'mixed': 1, 'rag': 11, 'refuse': 5, 'trap': 1} · reps=1
 - rows scored: 29 · errors (not scored): 0

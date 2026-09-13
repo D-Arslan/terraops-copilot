@@ -1,6 +1,6 @@
 # TerraOps Copilot — evaluation report (oracle)
 
-- generated: 2026-09-13T19:43:36.191362+00:00 · code: `1900e54-dirty`
+- generated: 2026-09-13T21:08:39.343243+00:00 · code: `7cf6d7f-dirty`
 - agent: `oracle/oracle` · judge: `none (deterministic only)`
 - dataset: 29 cases (hash `d17316435c33`) · {'live': 11, 'mixed': 1, 'rag': 11, 'refuse': 5, 'trap': 1} · reps=1
 - rows scored: 29 · errors (not scored): 0
@@ -17,7 +17,7 @@
 | over-refusal (answerable cases) | 0.0 % |
 | hallucination (any case) | 0.0 % |
 | mean LLM calls / question | 1.83 |
-| mean latency (s) | 0.68 |
+| mean latency (s) | 1.09 |
 | tokens in / out | 0 / 0 |
 
 ## Per category

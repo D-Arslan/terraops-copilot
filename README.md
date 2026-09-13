@@ -1,214 +1,187 @@
 # TerraOps Copilot
 
-**An LLM agent that operates an MLOps platform in natural language — and a harness that
-measures whether it tells the truth.**
+LLM agent that operates the [TerraOps](https://github.com/D-Arslan/terraops) MLOps platform
+in natural language, with five tools and a documentation index, and an evaluation harness that
+checks every answer against the platform itself: **97 % correct tool choice, 94 % correct
+facts, 3 % hallucination** with Claude Opus 5, and the same numbers measured for a 3B model
+running on a laptop.
 
-> *"Y a-t-il de la dérive cette semaine ?"* → the agent picks the drift tool, runs the real
-> Evidently report against Postgres, and answers *"non concluant : 6 lignes sur 200 requises"*
-> instead of *"no drift"*.
-> *"C'est quoi la dérive ?"* → it searches the project documentation and answers with a
-> citation. Nobody told it which was which.
+The agent is not the subject. The subject is whether an agent that can *ask the live system*
+or *read the documentation* picks the right one, and whether a number can be put on that.
+
+## Problem → Result
+
+Operating TerraOps means knowing seven endpoints, a registry, a drift CLI and two hundred lines of
+design notes. An operator asks *"is there drift this week?"* and *"what is drift?"* in the same
+breath; the first needs a live tool, the second needs the docs, and an agent that confuses
+them will say *"no drift"* when the honest answer is *"not enough data"*.
 
 ![demo](docs/demo.gif)
 
-*Recorded on the real UI with Claude Opus 5 by `scripts/record_demo.py` — nothing staged.*
+*Recorded on the real UI with Claude Opus 5 by `scripts/record_demo.py`. Nothing staged.*
 
-## The problem
+| agent | rows | tool choice | facts | real citation | correct refusal | hallucination | s/question |
+|---|---|---|---|---|---|---|---|
+| **Claude Opus 5** | 58 | **97** | **94** | **100** | **90** | **3** | 10 |
+| Qwen2.5-3B, local | 29 | 69 | 54 | 27 | 60 | 17 | 46 |
+| oracle control | 29 | 100 | 100 | 100 | 100 | 0 | — |
+| liar control | 29 | 17 | 4 | 0 | 0 | 100 | — |
 
-[TerraOps](https://github.com/D-Arslan/terraops) is a complete MLOps platform around a
-EuroSAT land-use classifier: DVC pipeline, MLflow registry with a promotion gate, FastAPI
-serving, Prometheus, Evidently drift monitoring, a continuous-training trigger. Operating it
-means knowing seven endpoints, a registry, a CLI and 700 lines of design notes.
+Source: [docs/eval/](docs/eval/), one directory per run, original and rescored reports
+(rescored = graded again with the graders at commit `21128ae`). 29 questions in five
+categories: 11 live, 11 documentation, 1 two-tool, 1 false premise, 5 that no tool can answer.
+Ground truth for live questions is fetched from the API at evaluation time. The noise floor
+at 29 × 2 rows is about ±13 points on a rate.
 
-The question this project answers: **can an LLM agent sit on top of that platform, choose
-by itself between *asking the live system* and *reading the documentation*, and be
-trusted?** The last word is the hard one — so the deliverable is not only the agent, it is
-the evaluation that puts a number on it.
+Three findings, details in [docs/DESIGN.md](docs/DESIGN.md):
+
+- **Routing is learnable from tool descriptions alone.** Nothing in the code decides between
+  live and documentation; Claude chose right in 97 % of rows, including the two-tool question
+  and the false premise (*"why is v3 the champion?"*, corrected with live data 2/2).
+- **Local models do not lie about live data; they lie where there is nothing to read.** Zero
+  live hallucination in three runs out of four, invented answers on the five *refuse*
+  questions, and a fake `[source § …]` citation in 12 of 22 documentation answers with the
+  first prompt.
+- **One failing row in three was the grader's fault, not the model's.** Eleven grader fixes
+  came out of reading the failures; several only surfaced on Claude's richer answers, which
+  went from 15 % to 3 % hallucination once fixed. Runs are re-scored, never re-run.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    U[User · Streamlit chat] --> A
+    U[User<br/>Streamlit chat :8502] --> A
 
-    subgraph Copilot
-        A[Agent loop<br/>think → act → observe]
-        R[ToolRegistry<br/>schema validation<br/>human-confirm for mutations]
-        L[LLMClient<br/>Anthropic · LM Studio]
-        A <--> L
-        A --> R
-        R --> T1[get_api_health]
-        R --> T2[get_served_model]
-        R --> T3[get_registry_champion]
-        R --> T4[get_drift_report]
-        R --> T5[search_documentation]
-        T5 --> H[Hybrid retrieval<br/>Chroma embeddings + BM25 · RRF]
-        H --> C[(corpus<br/>committed snapshot<br/>of TerraOps docs)]
+    subgraph COPILOT["Copilot - the model plans, the code executes"]
+        A[ReAct loop<br/>reason → tool call → observe] <--> L[LLMClient<br/>Anthropic · LM Studio<br/>one interface]
+        A --> V{ToolRegistry<br/>unknown tool? invalid args?<br/>mutation without confirm?}
+        V -- refused, as an observation --> A
+        V -- live state --> T[get_api_health<br/>get_served_model<br/>get_registry_champion<br/>get_drift_report]
+        V -- written knowledge --> S[search_documentation]
+        S --> H[hybrid retrieval<br/>BM25 + MiniLM · RRF]
+        H --> C[(corpus/<br/>committed snapshot<br/>of TerraOps docs)]
     end
 
-    subgraph TerraOps  [TerraOps — untouched]
-        T1 & T2 --> API[FastAPI :8000]
-        T3 --> ML[MLflow registry :5000]
-        T4 --> DR[drift_report.py<br/>Evidently over Postgres]
+    subgraph TERRAOPS["TerraOps - untouched, included by compose"]
+        T --> API[FastAPI :8000]
+        T --> ML[MLflow registry :5000]
+        T --> DR[drift_report.py<br/>Evidently over Postgres]
     end
 
-    subgraph Eval
-        E[evaluate.py<br/>29 cases · ground truth fetched<br/>from the API at run time] -.-> A
-        E -.-> API
-        E -.-> ML
+    subgraph EVAL["evaluate.py - 29 cases"]
+        GT[ground truth resolved<br/>at run time] -.-> API
+        GT -.-> ML
+        A -. answer + trajectory .-> G[deterministic graders<br/>route · facts · citation<br/>refusal · hallucination]
+        GT -.-> G
+        O[oracle / null / liar<br/>control brains] -.-> A
     end
 ```
 
-Two design lines run through everything:
+Static copy: [docs/architecture.svg](docs/architecture.svg). Two rules run through
+everything. **State vs knowledge**: whatever changes at runtime comes from a live tool,
+whatever is written comes from a committed snapshot through retrieval, and the model routes
+between them from the tool descriptions. **The model plans, the code executes**: a tool call
+is untrusted input, refused before anything touches TerraOps if the tool is unknown, the
+arguments fail the schema, or the action mutates without a human confirmation.
 
-- **State vs knowledge.** Anything that changes at runtime (served version, drift verdict,
-  counters) comes from a live tool; anything written (what drift is, gate thresholds, known
-  limits) comes from a committed documentation snapshot through RAG. The model routes
-  between them from the tool descriptions alone — that routing is what the eval measures.
-- **The model plans, the code executes.** A tool call is untrusted input: unknown tool,
-  invalid arguments (Pydantic), or a mutating action without human confirmation are refused
-  before anything touches TerraOps. Errors go back to the model as observations, never as
-  crashes.
+## Stack
 
-## Evaluation — the differentiator
+| layer | tools |
+|---|---|
+| language | Python 3.12, Pydantic 2.13 (tool schemas, argument validation) |
+| LLM providers | `anthropic` 1.4 (Claude Opus 5, reference), `openai` 3.10 against LM Studio (local Qwen2.5) |
+| retrieval | sentence-transformers 6.0 with `paraphrase-multilingual-MiniLM-L12-v2`, Chroma 1.5, rank-bm25, reciprocal rank fusion |
+| UI and packaging | Streamlit 1.60, Docker (python:3.12-slim, CPU torch 2.10), compose `include:` of the TerraOps stack |
+| quality | pytest (44 tests, offline: scripted LLM, fake embedder, Streamlit AppTest), GitHub Actions |
 
-The agent talks to an API whose truth is one HTTP call away. So the eval fetches the
-reference answer from the same system **at run time** and checks the agent against it.
-
-| category | n | ground truth | graded |
-|---|---|---|---|
-| live | 11 | API / registry / drift CLI, called directly | required tool, facts, unsupported numbers |
-| rag | 11 | terms known to be in the corpus | docs tool, facts, **citation that the tool really returned** |
-| mixed | 1 | two live calls compared | both tools, verdict |
-| trap | 1 | false premise ("why is v3 the champion?") | correction with live data |
-| refuse | 5 | no tool can answer | refusal marker, zero invented number, no claimed action |
-
-Route (tool choice) and outcome (facts) are graded separately. Hallucination is
-deterministic where it can be: forbidden phrase, number absent from every tool result,
-citation the tool never returned. An optional LLM judge covers only what code cannot see
-(faithfulness to retrieved passages, refusal quality). Infrastructure failures go to
-`errors.jsonl` and are never scored as wrong answers.
-
-**Harness validation** — before spending on a model, three control brains run through the
-same loop and the same tools:
-
-| control agent | tool choice | facts | citation | refusal | over-refusal | hallucination |
-|---|---|---|---|---|---|---|
-| oracle (perfect route & facts) | 100 | 100 | 100 | 100 | 0 | 0 |
-| null ("I don't know") | 17 | 0 | 0 | 100 | 100 | 0 |
-| liar (invented numbers) | 17 | 4 | 0 | 0 | 0 | 100 |
-
-The liar caught two graders that were too lenient (`1` matching inside `1234`, *chargé*
-matching inside *rechargé*) before any real number was produced. The three controls were
-re-run on 2026-09-13 with the current graders; reports in [docs/eval/](docs/eval/).
-
-**Real agent — reference vs local.** Same 29 cases, same deterministic graders, every
-run re-scored with the current grader version (`python evaluate.py --rescore <dir>`).
-Reports, original and rescored, are versioned in [docs/eval/](docs/eval/):
-
-| model | rows | tool choice | facts | citation | refusal | over-refusal | halluc. | s/question | cost |
-|---|---|---|---|---|---|---|---|---|---|
-| **Claude Opus 5** (Anthropic), rescored | 58 (2 reps) | **97** | **94** | **100** | **90** | 4 | **3** | 10 | $2.46 |
-| Qwen2.5-3B (LM Studio, local), rescored | 29 | 69 | 54 | 27 | 60 | 4 | 17 | 46 | 0 |
-| Qwen2.5-coder-7B (local, best partial run) | 10 | 90 | 80 | — | — | 0 | 10 | 60 | 0 |
-
-*Rescored* means graded again with the graders at commit `21128ae`, after eleven fixes
-made while reading the answers; the original reports scored Claude at 50 refusal /
-15.5 hallucination and the 3B at 40 / 24.1 (`summary.json` vs `summary.rescored.json`).
-Cost is the list price of 336 896 input and 30 925 output tokens from the report,
-prompt caching not accounted.
-
-Per category, Claude: live 100 % tool / 95 % facts; rag 100 % tool / 91 % facts / 100 %
-real citations; the two-tool question 2/2 (no local model managed it); the false-premise
-trap 2/2; refusals 9/10. Its four imperfect rows out of 58 are two retrieval misses
-answered cautiously with real citations, one string-grader false positive (it wrote
-*"ce n'est donc pas « pas de dérive »"*), and one debatable "closest approximation" on a
-refuse case.
-
-What the local runs found before that: with prompt v1, the 7B cited a passage the tool
-had actually returned in 2 of 22 rag answers and invented a `[source § …]` citation in
-12 of them, copying the prompt's placeholder (prompt v2: a concrete example, no citation
-without the tool; 3 of 11 invented afterwards, still 2 real); it then wrote tool calls
-as text after its "why" sentence and the OpenAI-compatible server dropped them (the
-adapter now salvages `[tool] {json} [END_TOOL_REQUEST]`, live routing 73 → 90 %); the
-laptop's integrated GPU died under sustained load (errors quarantined, circuit breaker
-added); the 3B is three times faster, finishes cleanly and actually uses the
-documentation tool. Across all runs: local models do not hallucinate live facts, but
-invent on *refuse* questions and fall for the false premise. About one KO row in three
-was a grader defect, not a model one; eleven grader fixes came out of reading them
-(seven from the local runs, four from Claude's) - several only surfaced on Claude's
-richer answers, which a grader calibrated on small models under-scored (15 % → 3 %
-hallucination after fixing timestamps, "24 h", *"impossible à savoir"*).
-
-Noise floor: 29 cases × 2 reps ≈ ±13 points on a rate; the Claude-vs-local gaps are far
-above it, differences between local runs mostly are not.
-
-## Run the demo
+## Getting started in 3 commands
 
 ```bash
-git clone https://github.com/D-Arslan/terraops.git          # sibling checkout
-git clone https://github.com/D-Arslan/terraops-copilot.git
-cd terraops-copilot
-cp .env.example .env         # ANTHROPIC_API_KEY=…  or  LLM_PROVIDER=lmstudio (LM Studio on the host)
-docker compose up            # TerraOps stack + copilot; UI on http://localhost:8502
+git clone https://github.com/D-Arslan/terraops.git && git clone https://github.com/D-Arslan/terraops-copilot.git && cd terraops-copilot
+cp .env.example .env      # ANTHROPIC_API_KEY=…  or  LLM_PROVIDER=lmstudio with LM Studio serving on the host
+docker compose up         # TerraOps stack (included unchanged) + copilot; chat on http://localhost:8502
 ```
 
-First boot downloads the embedding model and builds the vector store (kept in volumes).
-The compose file *includes* TerraOps' own compose unchanged and mounts its repo read-only.
+What you get, honestly:
 
-Local development:
+- **You need a model.** An Anthropic key (the reference run cost $2.46 for 58 questions),
+  or LM Studio on the host with a loaded model (`qwen2.5-3b-instruct` is the one measured
+  here; a 7B needs more than 16 GB of shared memory).
+- **The TerraOps registry is empty on a fresh clone**, so live questions get *"no model is
+  loaded"* until a champion is trained and promoted on that side (its README says how). The
+  documentation tool, the refusals and the drift tool's *"insufficient data"* work at once.
+- **First boot** downloads the embedding model (~460 MB) and builds the index, kept in volumes.
+
+Local development, same stack running:
 
 ```bash
-pip install -e . && pip install pytest
-python -m terraops_copilot.rag.ingest                       # vector store
+pip install -r requirements.txt && pip install --no-deps -e .
+python -m terraops_copilot.rag.ingest                       # vector store from corpus/
 python -m terraops_copilot --trace "quel est le modèle champion actuel ?"
-streamlit run ui/app.py --server.port 8502                  # the chat UI
-python -m pytest                                            # 44 tests, no network, no model
-python evaluate.py --agent oracle                           # harness self-test
-python scripts/record_demo.py                               # regenerate docs/demo.gif
+streamlit run ui/app.py --server.port 8502
+python -m pytest                                            # 44 tests, no key, no model
+python evaluate.py --agent oracle                           # harness self-test, no key
+python evaluate.py --reps 2                                 # the real agent (provider from .env)
 ```
 
-## What I learned (and would say in an interview)
-
-- A chatbot says; an agent acts and observes. The whole difficulty moves into three
-  places: the tool descriptions (they *are* the prompt), the validation boundary, and the
-  evaluation.
-- Small embedding models truncate silently — 106 of my first 120 chunks were cut at 128
-  tokens. Hybrid retrieval (BM25 + embeddings) beat a bigger embedding model on this
-  bilingual, identifier-heavy corpus.
-- "Not enough data" must survive the trip through the agent. A tool result of
-  *inconclusive* that comes out as *no drift* is the most dangerous failure in the set,
-  and it is the one the eval checks first.
-- Evaluating an agent is harder than evaluating a classifier: several valid routes, several
-  valid phrasings, and "I cannot" as a correct answer. Ground truth has to be a function,
-  not a constant.
-
-Full journal (French): [LEARNINGS.md](LEARNINGS.md). Endpoint audit: [docs/endpoint_audit.md](docs/endpoint_audit.md).
-
-## Layout
+## Repository layout
 
 ```
-src/terraops_copilot/
-  llm/      provider-neutral types, LLMClient, Anthropic + OpenAI-compatible adapters
-  client/   HTTP client to the TerraOps API + MLflow registry
-  tools/    Tool + ToolRegistry (validation boundary); TerraOps, drift, docs tools
-  rag/      chunking, BM25, Chroma store, hybrid retriever, ingest CLI
-  agent/    the ReAct loop (emits events for the UI)
-  eval/     cases, graders, judge, control agents, runner
-ui/app.py       Streamlit chat showing the agent's reasoning and sources
-evaluate.py     evaluation entry point
-corpus/         committed snapshot of TerraOps documentation
-docker/, Dockerfile, docker-compose.yml   one-command demo
+terraops-copilot/
+├── src/terraops_copilot/
+│   ├── llm/          # neutral types, LLMClient, Anthropic + OpenAI-compatible adapters, factory
+│   ├── tools/        # Tool + ToolRegistry (the validation boundary); TerraOps, drift, docs tools
+│   ├── rag/          # section chunking, BM25, Chroma store, hybrid retriever, ingest CLI
+│   ├── agent/        # the ReAct loop, emits events for the UI
+│   ├── client/       # HTTP client to the TerraOps API and MLflow registry
+│   └── eval/         # cases (ground truth as functions), graders, judge, control brains, runner
+├── ui/app.py         # Streamlit chat: reason → tool → result → cited answer, live
+├── evaluate.py       # evaluation entry point (--agent oracle|null|liar, --reps, --rescore, --judge)
+├── corpus/           # committed snapshot of TerraOps documentation (MANIFEST.md says what and why)
+├── docs/             # DESIGN.md, eval/ (versioned reports), demo.gif, architecture.svg, endpoint_audit.md
+├── tests/            # 44 offline tests: loop, registry, tools, retrieval, graders, UI
+├── scripts/          # record_demo.py (GIF on the real UI), export_diagram.py (Mermaid → SVG)
+└── Dockerfile, docker-compose.yml, docker/entrypoint.sh
 ```
 
-## Limits, stated
+## Design decisions and trade-offs
 
-- The drift tool runs TerraOps' `drift_report.py` as a subprocess (there is no drift
-  endpoint on that side yet), which is why the image carries torch and Evidently.
-- 29 cases × 2 reps gives roughly ±13 points on a rate: enough to tell good from bad, not to
-  rank two close prompts. More reps or more cases before any prompt hill-climbing.
-- The LLM judge is not calibrated against human labels yet; its verdicts are reported, not
-  trusted blindly.
-- Five of the seven TerraOps endpoints (`/predict`, `/predict/batch`, `/metrics`,
-  `/monitoring/status`, `/reload`) are not exposed as tools yet; `/reload` will be the
-  first mutating tool, behind a human confirmation.
+- **Tool descriptions are the prompt.** Each one says when to call it, what comes back, and
+  which neighbour to call instead. The eval measures the routing this text produces.
+- **Validation is a security boundary, not typing comfort.** Unknown name, extra field,
+  value outside a `Literal`, or a mutating tool without confirmation: refused, and the
+  refusal goes back to the model as an observation, never as an exception.
+- **Hybrid retrieval over a committed snapshot.** A small bilingual embedder blurs
+  identifiers (`min_delta`, `Wasserstein`); BM25 finds them; rank fusion avoids calibrating
+  two score scales. Chunks of 450 characters, because MiniLM silently truncates at 128 tokens.
+- **Ground truth is a function.** Live expectations are resolved against the API when the
+  eval runs; each fact is a set of equivalent phrasings; route and outcome are separate columns.
+- **Deterministic graders first, LLM judge last.** Forbidden phrase, unsupported number,
+  citation the tool never returned. The judge only covers faithfulness and refusal quality,
+  and is not calibrated against human labels yet.
+- **Controls before spending.** Oracle, null and liar brains run the same loop; the liar
+  caught two lenient graders before the first real run. Re-run after every grader change.
+- **Re-score, do not re-run.** Trajectories are saved; a grader fix re-grades 74 minutes of
+  local inference in seconds, and the report carries the grader's commit.
+
+## Limits and next steps
+
+- **29 cases, ±13 points.** Enough to separate Claude from a 3B, not to rank two prompts.
+  More cases before any prompt tuning.
+- **Five of seven endpoints are not tools yet**: `/predict`, `/predict/batch`, `/metrics`
+  (to be parsed, never shown raw), `/monitoring/status`, `/reload`. `/reload` will be the
+  first mutating tool, behind the confirmation the registry already enforces.
+- **The LLM adapters are untested offline**, including the text-salvage of tool calls that
+  LM Studio drops; only the loop, tools, retrieval, graders and UI are covered.
+- **The image is ~3 GB** because the drift tool runs TerraOps' `drift_report.py` in a
+  subprocess (no drift endpoint on that side), which needs torch and Evidently.
+- **The corpus is a snapshot** and lags TerraOps' docs; refreshing it re-runs the eval's
+  documentation cases against a new index.
+
+## Author
+
+Arslan Dif, M2 distributed systems and data science.
+Related work: [TerraOps](https://github.com/D-Arslan/terraops) (the platform this agent
+operates), [UrbanFlow](https://github.com/D-Arslan/UrbanFlow) (real-time Vélib' pipeline,
+Kafka / Spark / XGBoost), [Crop Classification](https://github.com/D-Arslan/crop-classification)
+(MCTNet reproduction on Sentinel-2 time series).
