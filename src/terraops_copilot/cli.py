@@ -11,13 +11,16 @@ from dotenv import load_dotenv
 
 from .agent.loop import Agent
 from .client.terraops_api import TerraOpsClient
+from .llm.base import LLMClient
 from .llm.factory import make_llm_client
 from .tools.base import ToolRegistry
 from .tools.drift import build_drift_tool
 from .tools.terraops import build_tools
 
 
-def build_agent(with_rag: bool = True) -> Agent:
+def build_agent(with_rag: bool = True, llm: LLMClient | None = None) -> Agent:
+    """Wire tools + agent. `llm` lets callers (the eval's control brains) supply their
+    own model so no real provider client is built or configured for nothing."""
     client = TerraOpsClient()
     tools = build_tools(client) + [build_drift_tool()]
     if with_rag:
@@ -28,7 +31,7 @@ def build_agent(with_rag: bool = True) -> Agent:
         if store.count() == 0:
             raise SystemExit("Vector store is empty: run `python -m terraops_copilot.rag.ingest` first.")
         tools.append(build_docs_tool(HybridRetriever(store)))
-    return Agent(make_llm_client(), ToolRegistry(tools))
+    return Agent(llm or make_llm_client(), ToolRegistry(tools))
 
 
 def main(argv: list[str] | None = None) -> int:

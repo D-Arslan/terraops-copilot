@@ -22,7 +22,6 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from terraops_copilot.agent.loop import Agent                       # noqa: E402
 from terraops_copilot.cli import build_agent                         # noqa: E402
 from terraops_copilot.client.terraops_api import TerraOpsClient      # noqa: E402
 from terraops_copilot.eval.baselines import LiarLLM, NullLLM, OracleLLM  # noqa: E402
@@ -63,10 +62,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"report -> {args.rescore / 'report.rescored.md'}")
         return 0
 
-    agent = build_agent(with_rag=True)
-    if args.agent != "real":
-        brain = {"oracle": OracleLLM, "null": NullLLM, "liar": LiarLLM}[args.agent]()
-        agent = Agent(brain, agent.registry, max_steps=agent.max_steps, system_prompt=agent.system_prompt)
+    # Control brains are built first and injected: a control run must not depend on
+    # (or even instantiate) the configured real provider.
+    brain = None if args.agent == "real" else {"oracle": OracleLLM, "null": NullLLM, "liar": LiarLLM}[args.agent]()
+    agent = build_agent(with_rag=True, llm=brain)
     judge = make_judge() if args.judge else None
 
     label = args.agent if args.agent != "real" else os.getenv("LLM_PROVIDER", "anthropic")
