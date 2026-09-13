@@ -1,0 +1,23 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      # CPU-only torch first: sentence-transformers would otherwise pull CUDA wheels (+2 GB).
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu torch==2.10.0
+      - run: pip install -r requirements.txt && pip install --no-deps -e .
+      # 44 tests, no network, no API key, no embedding model (fake embedder).
+      - run: python -m pytest
