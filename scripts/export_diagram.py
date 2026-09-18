@@ -1,7 +1,7 @@
 """Export the README's Mermaid architecture diagram to docs/architecture.svg.
 
 Renders the first ```mermaid block of README.md with mermaid.js in headless Chromium
-(Playwright, already a dev dependency for record_demo.py). No mermaid-cli needed.
+(Playwright, not a project dependency: any interpreter that has it). No mermaid-cli needed.
 
     python scripts/export_diagram.py            # README.md -> docs/architecture.svg
 """
@@ -33,7 +33,11 @@ def main() -> int:
         page = browser.new_page()
         page.set_content(html, wait_until="networkidle")
         page.wait_for_selector("pre.mermaid svg", timeout=60_000)
-        svg = page.inner_html("pre.mermaid")
+        # XMLSerializer, not innerHTML: HTML labels contain <br>, which innerHTML leaves
+        # unclosed (fine in a page, invalid as a standalone .svg / on GitHub).
+        svg = page.evaluate(
+            "new XMLSerializer().serializeToString(document.querySelector('pre.mermaid svg'))"
+        )
         browser.close()
     out = ROOT / "docs" / "architecture.svg"
     out.write_text(svg, encoding="utf-8", newline="\n")
